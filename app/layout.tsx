@@ -4,9 +4,9 @@ import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.dev',
+  title: 'Cuddlynest Blog',
+  description: 'Your ultimate travel companion for discovering amazing destinations, hotels, and experiences around the world.',
+  generator: 'Cuddlynest',
 }
 
 export default function RootLayout({
