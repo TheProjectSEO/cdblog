@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { 
   getStarterPackForPost, 
-  createStarterPackSection, 
+  createStarterPackSection
+} from '@/lib/supabase'
+import {
   updateStarterPackSection, 
   deleteStarterPackSection,
   createSampleStarterPackData,
   getAllStarterPackSections
-} from '@/lib/supabase'
+} from '@/lib/supabase-starter-pack'
 
 // GET - Fetch starter pack for a specific post or all sections
 export async function GET(request: NextRequest) {
@@ -79,15 +81,15 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      result = await createStarterPackSection({
+      result = await createStarterPackSection(
         postId,
         badge,
         title,
         description,
-        position: position || 0,
-        highlights: highlights || [],
-        features: features || []
-      })
+        position || 0,
+        highlights || [],
+        features || []
+      )
     }
 
     if (!result) {

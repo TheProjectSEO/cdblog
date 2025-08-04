@@ -901,30 +901,6 @@ export default function AdminPage() {
 
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto p-6">
-          {/* Debug: Show current view and available views */}
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="text-sm text-blue-800 mb-2">
-              <strong>Debug Info:</strong> Current view: <code className="bg-blue-100 px-1 rounded">{currentView}</code>
-            </div>
-            <div className="text-xs text-blue-600">
-              Available views: {navigationItems.map(item => item.view).join(', ')}
-            </div>
-            <div className="mt-2 flex gap-2 flex-wrap">
-              {navigationItems.map(item => (
-                <button
-                  key={item.view}
-                  onClick={() => setCurrentView(item.view)}
-                  className={`px-2 py-1 text-xs rounded ${
-                    currentView === item.view 
-                      ? 'bg-blue-200 text-blue-900' 
-                      : 'bg-blue-100 text-blue-700 hover:bg-blue-150'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
           {currentView === 'dashboard' && renderDashboardStats()}
           {currentView === 'travel-guide' && (
             <div className="space-y-6">
