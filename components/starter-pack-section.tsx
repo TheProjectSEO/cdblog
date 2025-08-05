@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { Clock, DollarSign, Globe, Calendar, Users, MapPin } from 'lucide-react'
 
 interface StarterPackData {
@@ -10,7 +11,17 @@ interface StarterPackData {
   currency: string
   language: string
   timezone: string
-  highlights: string[]
+  highlights: string[] | Array<{
+    title?: string
+    name?: string
+    description?: string
+    value?: string
+  }>
+  features?: Array<{
+    title?: string
+    description?: string
+    content?: string
+  }>
 }
 
 interface StarterPackSectionProps {
@@ -18,6 +29,7 @@ interface StarterPackSectionProps {
 }
 
 export function StarterPackSection({ data }: StarterPackSectionProps) {
+  
   const {
     destination,
     bestTime,
@@ -28,6 +40,27 @@ export function StarterPackSection({ data }: StarterPackSectionProps) {
     timezone,
     highlights
   } = data
+  
+  // Convert highlights to string array if they're objects
+  const processedHighlights = React.useMemo(() => {
+    if (!highlights || !Array.isArray(highlights)) {
+      console.log('No highlights or not array:', highlights)
+      return []
+    }
+    
+    return highlights.map((highlight) => {
+      if (typeof highlight === 'string') {
+        return highlight
+      }
+      
+      // If it's an object, extract the text
+      if (typeof highlight === 'object') {
+        return highlight.title || highlight.name || highlight.description || highlight.value || 'Highlight'
+      }
+      
+      return String(highlight)
+    })
+  }, [highlights])
 
   return (
     <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -106,15 +139,22 @@ export function StarterPackSection({ data }: StarterPackSectionProps) {
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {highlights.map((highlight, index) => (
-                <div 
-                  key={index}
-                  className="flex items-start p-4 bg-blue-50 rounded-lg border border-blue-200"
-                >
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                  <p className="text-gray-800 font-medium">{highlight}</p>
+              {processedHighlights.length > 0 ? (
+                processedHighlights.map((highlight, index) => (
+                  <div 
+                    key={index}
+                    className="flex items-start p-4 bg-blue-50 rounded-lg border border-blue-200"
+                  >
+                    <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                    <p className="text-gray-800 font-medium">{highlight}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center text-gray-500 py-8">
+                  <p>Highlights are being loaded...</p>
+                  <p className="text-sm mt-2">Debug: {JSON.stringify(data.highlights || 'no highlights')}</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

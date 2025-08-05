@@ -1,4 +1,4 @@
-import { getModernPostBySlug, getStarterPackForPost, supabase } from "@/lib/supabase"
+import { getModernPostBySlug, getModernPostBySlugWithPreview, getStarterPackForPost, supabase } from "@/lib/supabase"
 import { DynamicSectionRenderer } from "@/components/dynamic-section-renderer"
 import { Footer } from "@/components/footer"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
@@ -12,11 +12,20 @@ interface BlogPostPageProps {
   params: Promise<{
     slug: string
   }>
+  searchParams: Promise<{
+    preview?: string
+  }>
 }
 
-export default async function BlogPostPage({ params }: BlogPostPageProps) {
+export default async function BlogPostPage({ params, searchParams }: BlogPostPageProps) {
   const resolvedParams = await params
-  const post = await getModernPostBySlug(resolvedParams.slug)
+  const resolvedSearchParams = await searchParams
+  const isPreview = resolvedSearchParams.preview === 'true'
+  
+  // Use preview function if in preview mode, otherwise use regular function
+  const post = isPreview 
+    ? await getModernPostBySlugWithPreview(resolvedParams.slug, true)
+    : await getModernPostBySlug(resolvedParams.slug)
   
   if (!post) {
     notFound()
@@ -128,6 +137,21 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         </div>
       </div>
 
+      {/* Draft Preview Banner */}
+      {isPreview && post.status === 'draft' && (
+        <div className="bg-orange-100 border-b border-orange-200">
+          <div className="max-w-full mx-auto px-8 py-3">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+              <span className="text-orange-800 font-medium text-sm">
+                DRAFT PREVIEW - This post is not published yet
+              </span>
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dynamic Sections */}
       {hasSections ? (
         <DynamicSectionRenderer 
@@ -176,82 +200,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   )
 }
 
-// Generate metadata for SEO
-export async function generateMetadata({ params }: BlogPostPageProps) {
-  const resolvedParams = await params
-  const post = await getModernPostBySlug(resolvedParams.slug)
-  
-  if (!post) {
-    return {
-      title: 'Post Not Found',
-    }
-  }
-
-  // Get available translations for hreflang
-  const { data: translations } = await supabase
-    .from('post_translations')
-    .select('language_code, translated_slug')
-    .eq('original_post_id', post.id)
-    .eq('translation_status', 'completed')
-
-  // Build hreflang object with all available translations
-  const languages: Record<string, string> = {
-    'en': `/blog/${post.slug}`, // Original English version
-    'x-default': `/blog/${post.slug}` // Default fallback for unmatched languages
-  }
-  
-  // Add all completed translations
-  if (translations && translations.length > 0) {
-    translations.forEach(translation => {
-      languages[translation.language_code] = `/blog/${post.slug}/${translation.language_code}`
-    })
-  }
-
-  return {
-    title: post.meta_title || post.title,
-    description: post.meta_description || post.excerpt,
-    keywords: post.meta_keywords || `travel, ${post.title}, travel guide, destination`,
-    authors: [{ name: post.author?.display_name || 'CuddlyNest Travel Team' }],
-    creator: post.author?.display_name || 'CuddlyNest Travel Team',
-    publisher: 'CuddlyNest',
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
-    },
-    openGraph: {
-      title: post.og_title || post.title,
-      description: post.og_description || post.excerpt || '',
-      type: 'article',
-      publishedTime: post.published_at || undefined,
-      modifiedTime: post.updated_at || undefined,
-      authors: [post.author?.display_name || 'CuddlyNest Travel Team'],
-      siteName: 'CuddlyNest',
-      locale: 'en_US',
-      images: post.og_image?.file_url ? [{
-        url: post.og_image.file_url,
-        width: 1200,
-        height: 630,
-        alt: post.title,
-      }] : [],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      site: '@cuddlynest',
-      creator: '@cuddlynest',
-      title: post.og_title || post.title,
-      description: post.og_description || post.excerpt || '',
-      images: post.og_image?.file_url ? [post.og_image.file_url] : [],
-    },
-    alternates: {
-      canonical: `https://cuddlynest.com/blog/${post.slug}`,
-      languages: languages,
-    },
-  }
-}
+// Generate metadata for SEO - TEMPORARILY DISABLED FOR DEBUGGING  
+// export async function generateMetadata({ params }: BlogPostPageProps) {
+//   // This entire function is commented out to test if metadata generation causes hanging
+// }

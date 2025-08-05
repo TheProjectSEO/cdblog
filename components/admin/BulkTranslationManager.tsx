@@ -28,7 +28,7 @@ import {
   Upload
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import TranslationService from '@/lib/services/translationService'
+import { getSupportedLanguages } from '@/lib/constants/supportedLanguages'
 
 interface BulkTranslation {
   id: string
@@ -75,7 +75,7 @@ export function BulkTranslationManager({ onTranslationEdit }: BulkTranslationMan
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const supportedLanguages = TranslationService.getSupportedLanguages()
+  const supportedLanguages = getSupportedLanguages()
 
   useEffect(() => {
     fetchAllTranslations()

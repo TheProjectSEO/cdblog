@@ -152,7 +152,7 @@ export interface ModernSection {
   }
 }
 
-// Fetch a single modern blog post by slug with sections
+// Fetch a single modern blog post by slug with sections (published only)
 export async function getModernPostBySlug(slug: string): Promise<ModernPost | null> {
   try {
     const { data: postData, error: postError } = await supabase
@@ -217,6 +217,86 @@ export async function getModernPostBySlug(slug: string): Promise<ModernPost | nu
   } catch (err) {
     console.error('Exception fetching modern blog post:', err)
     return null
+  }
+}
+
+// Fetch a single modern blog post by slug with sections (includes draft for preview)
+export async function getModernPostBySlugWithPreview(slug: string, allowDraft: boolean = false): Promise<ModernPost | null> {
+  try {
+    let query = supabase
+      .from('modern_posts')
+      .select(`
+        *,
+        modern_authors(*),
+        featured_image:modern_media!featured_image_id(file_url),
+        og_image:modern_media!og_image_id(file_url)
+      `)
+      .eq('slug', slug)
+
+    // Only filter by published status if not allowing drafts
+    if (!allowDraft) {
+      query = query.eq('status', 'published')
+    }
+
+    const { data: postData, error: postError } = await query.single()
+
+    if (postError) {
+      if (postError.code === 'PGRST116') {
+        console.log(`Modern post not found for slug: ${slug}`)
+        return null
+      }
+      console.error('Error fetching modern post:', postError)
+      return null
+    }
+
+    // Get sections for the post
+    const { data: sectionsData, error: sectionsError } = await supabase
+      .from('modern_post_sections')
+      .select('*')
+      .eq('post_id', postData.id)
+      .eq('is_active', true)
+      .order('position', { ascending: true })
+
+    if (sectionsError) {
+      console.error('Error fetching post sections:', sectionsError)
+      // Continue with empty sections array instead of failing
+    }
+
+    const transformedPost: ModernPost = {
+      ...postData,
+      sections: sectionsData || [],
+      author: postData.modern_authors || null
+    }
+
+    return transformedPost
+  } catch (error) {
+    console.error('Exception in getModernPostBySlugWithPreview:', error)
+    return null
+  }
+}
+
+// Publish a draft post
+export async function publishPost(postId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('modern_posts')
+      .update({ 
+        status: 'published',
+        published_at: new Date().toISOString()
+      })
+      .eq('id', postId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error publishing post:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Exception publishing post:', error)
+    return { success: false, error: 'Failed to publish post' }
   }
 }
 

@@ -42,9 +42,10 @@ import {
   Award,
   Database,
   ImageIcon,
-  AlertTriangle
+  AlertTriangle,
+  Send
 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { supabase, publishPost } from '@/lib/supabase'
 import { searchPostsWithTranslations } from '@/lib/supabase_translation_search'
 import { SectionEditor } from '@/components/admin/section-editor'
 import { TranslationManager } from '@/components/admin/TranslationManager'
@@ -63,7 +64,6 @@ interface ModernPost {
   created_at: string
   updated_at: string
   excerpt?: string
-  content?: string
   author_id?: string
   sections?: ModernSection[]
   // SEO fields
@@ -229,6 +229,7 @@ export default function AdminPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [sectionToDelete, setSectionToDelete] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [showDeletePostConfirm, setShowDeletePostConfirm] = useState(false)
   const [postToDelete, setPostToDelete] = useState<string | null>(null)
@@ -440,9 +441,7 @@ export default function AdminPage() {
             subtitle: post.excerpt || 'Post description',
             backgroundImage: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
             location: 'Location'
-          },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          }
         },
         {
           post_id: post.id,
@@ -450,10 +449,8 @@ export default function AdminPage() {
           position: 1,
           is_active: true,
           data: {
-            content: post.content || '<p>Add your blog content here...</p>'
-          },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+            content: '<p>Add your blog content here...</p>'
+          }
         }
       ]
 
@@ -595,11 +592,11 @@ export default function AdminPage() {
         .insert({
           title,
           slug,
-          status: 'draft',
+          status: 'draft', // Keep as draft for editing workflow
           excerpt: 'This is a test post created to demonstrate the editing functionality.',
-          content: '<h1>Welcome to the Test Post</h1><p>This is some sample content for testing the legacy editor functionality. You can edit this content using the Legacy Content Editor.</p><p>Features to test:</p><ul><li>Content editing</li><li>Excerpt editing</li><li>Meta description editing</li><li>Save functionality</li></ul>',
-          meta_description: 'A test post to demonstrate the hybrid editing system for legacy and section-based posts.',
-          author_id: authorId
+          seo_description: 'A test post to demonstrate the hybrid editing system for legacy and section-based posts.',
+          author_id: authorId,
+          content: null // Add the content field that the database trigger expects
         })
         .select()
         .single()
@@ -620,6 +617,39 @@ export default function AdminPage() {
       alert(`Error creating post: ${error.message || 'Unknown error'}`)
     } finally {
       setIsCreating(false)
+    }
+  }
+
+  const handlePublishPost = async (postId: string) => {
+    setIsPublishing(true)
+    try {
+      const result = await publishPost(postId)
+      if (result.success) {
+        // Update the post in the local state
+        setPosts(posts.map(post => 
+          post.id === postId 
+            ? { ...post, status: 'published', published_at: new Date().toISOString() }
+            : post
+        ))
+        
+        // Update selected post if it's the one being published
+        if (selectedPost?.id === postId) {
+          setSelectedPost({ 
+            ...selectedPost, 
+            status: 'published', 
+            published_at: new Date().toISOString() 
+          })
+        }
+        
+        alert('Post published successfully!')
+      } else {
+        alert(`Error publishing post: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error publishing post:', error)
+      alert('Error publishing post')
+    } finally {
+      setIsPublishing(false)
     }
   }
 
@@ -1054,7 +1084,7 @@ export default function AdminPage() {
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => window.open(
-                                  isTranslation ? `/blog/${post.displaySlug}` : `/blog/${post.slug}`, 
+                                  isTranslation ? `/blog/${post.displaySlug}?preview=true` : `/blog/${post.slug}?preview=true`, 
                                   '_blank'
                                 )}
                                 disabled={isTranslation && post.status !== 'completed'}
@@ -1062,6 +1092,18 @@ export default function AdminPage() {
                                 <Eye className="w-4 h-4 mr-2" />
                                 Preview
                               </Button>
+                              {!isTranslation && post.status === 'draft' && (
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  onClick={() => handlePublishPost(post.id)}
+                                  disabled={isPublishing}
+                                >
+                                  <Send className="w-4 h-4 mr-2" />
+                                  {isPublishing ? 'Publishing...' : 'Publish'}
+                                </Button>
+                              )}
                               <Button 
                                 size="sm" 
                                 className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -1320,7 +1362,7 @@ export default function AdminPage() {
                     {selectedPost.status}
                   </Badge>
                   <Button
-                    onClick={() => window.open(`/blog/${selectedPost.slug}`, '_blank')}
+                    onClick={() => window.open(`/blog/${selectedPost.slug}?preview=true`, '_blank')}
                     variant="outline"
                     size="sm"
                   >
@@ -1475,7 +1517,7 @@ export default function AdminPage() {
                           </Button>
                           
                           <Button
-                            onClick={() => window.open(`/blog/${selectedPost?.slug}`, '_blank')}
+                            onClick={() => window.open(`/blog/${selectedPost?.slug}?preview=true`, '_blank')}
                             variant="outline"
                           >
                             <Eye className="w-4 h-4 mr-2" />

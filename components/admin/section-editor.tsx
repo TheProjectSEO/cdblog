@@ -1224,6 +1224,275 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
     </div>
   )
 
+  const renderHotelsEditor = () => {
+    // Initialize default data structure if not present
+    if (!editedData.hotels) {
+      updateField('hotels', [])
+    }
+
+    return (
+      <div className="space-y-8">
+        {/* Section Info */}
+        <div className="space-y-6">
+          <div>
+            <Label className="text-blue-900 font-medium">Section Title</Label>
+            <Input
+              value={editedData.title || ''}
+              onChange={(e) => updateField('title', e.target.value)}
+              placeholder="Where to Stay"
+              className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div>
+            <Label className="text-blue-900 font-medium">Description</Label>
+            <Textarea
+              value={editedData.description || ''}
+              onChange={(e) => updateField('description', e.target.value)}
+              placeholder="Find the perfect accommodation for your trip"
+              className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+          
+          <div>
+            <Label className="text-blue-900 font-medium">Destination</Label>
+            <Input
+              value={editedData.destination || ''}
+              onChange={(e) => updateField('destination', e.target.value)}
+              placeholder="Italian Lakes"
+              className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Hotels Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-blue-900 font-medium text-lg">Hotels ({(editedData.hotels || []).length})</Label>
+            <Button
+              onClick={() => addArrayItem('hotels', { 
+                name: 'New Hotel',
+                description: 'Beautiful accommodation',
+                image: 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                rating: 4.5,
+                reviews: 1000,
+                pricePerNight: 150,
+                category: 'City Center',
+                location: 'City Center',
+                amenities: ['WiFi', 'Pool', 'Restaurant']
+              })}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Hotel
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-6">
+            {(editedData.hotels || []).map((hotel: any, index: number) => (
+              <Card key={index} className="p-6 border-blue-200">
+                <div className="flex items-start justify-between mb-4">
+                  <Label className="text-blue-900 font-medium text-lg">Hotel {index + 1}</Label>
+                  <Button
+                    onClick={() => removeArrayItem('hotels', index)}
+                    size="sm"
+                    variant="outline"
+                    className="border-red-300 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-blue-800 text-sm">Hotel Name *</Label>
+                      <Input
+                        value={hotel.name || ''}
+                        onChange={(e) => updateArrayItem('hotels', index, 'name', e.target.value)}
+                        placeholder="Grand Heritage Hotel"
+                        className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-blue-800 text-sm">Description</Label>
+                      <Textarea
+                        value={hotel.description || ''}
+                        onChange={(e) => updateArrayItem('hotels', index, 'description', e.target.value)}
+                        placeholder="Luxury accommodation in the heart of the city"
+                        className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-blue-800 text-sm">Image URL</Label>
+                      <Input
+                        value={hotel.image || ''}
+                        onChange={(e) => updateArrayItem('hotels', index, 'image', e.target.value)}
+                        placeholder="https://images.unsplash.com/..."
+                        className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-blue-800 text-sm">Location/Category</Label>
+                      <Input
+                        value={hotel.location || hotel.category || ''}
+                        onChange={(e) => {
+                          updateArrayItem('hotels', index, 'location', e.target.value)
+                          updateArrayItem('hotels', index, 'category', e.target.value)
+                        }}
+                        placeholder="City Center"
+                        className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-blue-800 text-sm">Rating (1-5)</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="5"
+                          step="0.1"
+                          value={hotel.rating || ''}
+                          onChange={(e) => updateArrayItem('hotels', index, 'rating', parseFloat(e.target.value) || 0)}
+                          placeholder="4.5"
+                          className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-blue-800 text-sm">Reviews</Label>
+                        <Input
+                          type="number"
+                          value={hotel.reviews || ''}
+                          onChange={(e) => updateArrayItem('hotels', index, 'reviews', parseInt(e.target.value) || 0)}
+                          placeholder="1000"
+                          className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-blue-800 text-sm">Price per Night (€)</Label>
+                      <Input
+                        type="number"
+                        value={hotel.pricePerNight || ''}
+                        onChange={(e) => updateArrayItem('hotels', index, 'pricePerNight', parseInt(e.target.value) || 0)}
+                        placeholder="150"
+                        className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-blue-800 text-sm">Amenities (comma-separated)</Label>
+                      <Input
+                        value={(hotel.amenities || []).join(', ')}
+                        onChange={(e) => {
+                          const amenities = e.target.value.split(',').map(a => a.trim()).filter(a => a)
+                          updateArrayItem('hotels', index, 'amenities', amenities)
+                        }}
+                        placeholder="WiFi, Pool, Restaurant, Spa"
+                        className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    {/* Hotel Preview */}
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <Label className="text-blue-800 text-xs font-medium">Preview:</Label>
+                      <div className="mt-2 text-xs space-y-1">
+                        <div className="font-semibold text-gray-900">{hotel.name || 'Hotel Name'}</div>
+                        <div className="text-blue-600 font-bold">From €{hotel.pricePerNight || 0}/night</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-yellow-500">★ {hotel.rating || 0}</span>
+                          <span className="text-gray-500">({(hotel.reviews || 0).toLocaleString()} reviews)</span>
+                        </div>
+                        <div className="text-gray-600">{hotel.location || 'Location'}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+          
+          {(!editedData.hotels || editedData.hotels.length === 0) && (
+            <Card className="p-8 text-center border-dashed border-blue-200">
+              <p className="text-blue-600 mb-4">No hotels yet</p>
+              <Button
+                onClick={() => addArrayItem('hotels', { 
+                  name: 'Grand Heritage Hotel',
+                  description: 'Luxury accommodation in the heart of the city',
+                  image: 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                  rating: 4.6,
+                  reviews: 1240,
+                  pricePerNight: 180,
+                  category: 'City Center',
+                  location: 'City Center',
+                  amenities: ['Luxury', 'Central', 'Full service']
+                })}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add First Hotel
+              </Button>
+            </Card>
+          )}
+        </div>
+
+        {/* Section Preview */}
+        <div className="space-y-4">
+          <Label className="text-blue-900 font-medium text-lg">Section Preview</Label>
+          <Card className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                {editedData.title || 'Where to Stay'}
+              </h3>
+              <p className="text-gray-600">
+                {editedData.description || 'Find the perfect accommodation for your trip'}
+              </p>
+            </div>
+            
+            {(editedData.hotels || []).length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(editedData.hotels || []).slice(0, 3).map((hotel: any, index: number) => (
+                  <div key={index} className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                    <div className="h-32 bg-gray-200 relative">
+                      {hotel.image && (
+                        <img src={hotel.image} alt={hotel.name} className="w-full h-full object-cover" />
+                      )}
+                      <div className="absolute top-2 right-2 bg-white/90 rounded-full px-2 py-1 text-xs font-semibold">
+                        ★ {hotel.rating || 0}
+                      </div>
+                    </div>
+                    <div className="p-3">
+                      <h4 className="font-bold text-sm text-gray-900 mb-1">{hotel.name}</h4>
+                      <p className="text-xs text-gray-600 mb-2 line-clamp-2">{hotel.description}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-blue-600 font-bold text-sm">From €{hotel.pricePerNight}/night</span>
+                        <span className="text-xs text-gray-500">({hotel.reviews || 0} reviews)</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No hotels added yet. Click "Add Hotel" to get started.
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   const renderGenericEditor = () => (
     <div className="space-y-6">
       <div>
@@ -1263,6 +1532,8 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
         return renderFAQEditor()
       case 'internal-links':
         return renderInternalLinksEditor()
+      case 'hotels':
+        return renderHotelsEditor()
       default:
         return renderGenericEditor()
     }

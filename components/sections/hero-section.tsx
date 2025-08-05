@@ -79,8 +79,8 @@ export function HeroSection({
       // Florence Duomo and city panorama at sunset
       return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
     } else if (postTitle.includes('naples') || postTitle.includes('amalfi')) {
-      // Spectacular Amalfi Coast cliffside view with turquoise waters
-      return "https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1web&fHx8fA%3D%3D"
+      // Stunning Amalfi Coast with vibrant turquoise waters and colorful cliffside villages - Positano view
+      return "https://images.unsplash.com/photo-1520637836862-4d197d17c50a?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
     } else if (postTitle.includes('rotterdam')) {
       // Rotterdam nightlife with vibrant skyline image
       return "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
@@ -91,8 +91,8 @@ export function HeroSection({
   }
   
   const finalImage = getHeroImageForDestination()
-  const badge = data?.badge || "🏔️ Your travel adventure starts here"
-  const rating = data?.rating || "4.9/5 from travelers"
+  const badge = data?.badge || (finalTitle.includes('Italienische') ? "🏔️ Ihr Reiseabenteuer beginnt hier" : "🏔️ Your travel adventure starts here")
+  const rating = data?.rating || (finalTitle.includes('Italienische') ? "4,9/5 von Reisenden" : "4.9/5 from travelers")
   const authorName = post?.author?.display_name || "CuddlyNest Travel Team"
 
   return (
@@ -171,11 +171,11 @@ export function HeroSection({
               </div>
               <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg">
                 <Calendar className="w-4 h-4 text-white" />
-                <span className="text-white text-sm font-medium">Perfect year-round</span>
+                <span className="text-white text-sm font-medium">{finalTitle.includes('Italienische') ? "Perfekt das ganze Jahr" : "Perfect year-round"}</span>
               </div>
               <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg">
                 <Users className="w-4 h-4 text-white" />
-                <span className="text-white text-sm font-medium">For every traveler</span>
+                <span className="text-white text-sm font-medium">{finalTitle.includes('Italienische') ? "Für jeden Reisenden" : "For every traveler"}</span>
               </div>
               <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg">
                 <Star className="w-4 h-4 text-yellow-400 fill-current" />
@@ -195,16 +195,18 @@ export function HeroSection({
                   className="bg-brand-purple hover:bg-brand-deep-purple text-white text-lg px-8 py-4 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto"
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
-                  {data?.ctaPrimary?.text || "Start planning your trip"}
+                  {data?.ctaPrimary?.text || (finalTitle.includes('Italienische') ? "Reiseplanung starten" : "Start planning your trip")}
                 </Button>
               </Link>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-2 border-white text-white hover:bg-white hover:text-brand-deep-purple text-lg px-8 py-4 rounded-full bg-transparent font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto"
-              >
-                {data?.ctaSecondary?.text || "Explore guide"}
-              </Button>
+              <Link href={data?.ctaSecondary?.url || "/blog"}>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-white text-white hover:bg-white hover:text-brand-deep-purple text-lg px-8 py-4 rounded-full bg-transparent font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto"
+                >
+                  {data?.ctaSecondary?.text || (finalTitle.includes('Italienische') ? "Reiseführer erkunden" : "Explore guide")}
+                </Button>
+              </Link>
               
               {/* Author badges inline with buttons */}
               <Badge className="bg-white/15 backdrop-blur-md text-white border-white/20 hover:bg-white/25 transition-colors px-4 py-2 shadow-lg">

@@ -1,6 +1,5 @@
 import { HeroSection } from './sections/hero-section'
 import { AuthorBlock } from './author-block'
-import { OverviewIntro } from './overview-intro'
 import { RichTextEditor } from './rich-text-editor'
 import { FAQSection } from './faq-section'
 import { InternalLinking } from './internal-linking'
@@ -13,7 +12,6 @@ import { WhereToStay } from './where-to-stay'
 import { WhyDestinationDifferent } from './why-destination-different'
 import { InternalLinksSection } from './internal-links-section'
 import { Clock, DollarSign, Camera, Heart } from 'lucide-react'
-import { getStarterPackForPost } from '@/lib/supabase'
 
 interface ModernSection {
   id: string
@@ -148,10 +146,10 @@ function getTemplateInfo(template_id: string) {
       component_name: 'StarterPackSection',
       category: 'overview'
     },
-    // Overview Intro
+    // Starter Pack Section
     '8642ef7e-6198-4cd4-b0f9-8ba6bb868951': {
-      name: 'overview-intro',
-      component_name: 'OverviewIntro',
+      name: 'starter-pack-section',
+      component_name: 'StarterPackSection',
       category: 'content'
     },
     // Things To Do Cards
@@ -240,8 +238,8 @@ function getTemplateInfo(template_id: string) {
       category: 'content'
     },
     'overview-intro': {
-      name: 'overview-intro',
-      component_name: 'OverviewIntro',
+      name: 'starter-pack-section',
+      component_name: 'StarterPackSection',
       category: 'content'
     },
     'blog-content': {
@@ -364,6 +362,7 @@ export function DynamicSectionRenderer({ sections, post }: DynamicSectionRendere
             location={sectionData.location || 'Destination'}
             heroImage={sectionData.backgroundImage || sectionData.image || '/placeholder.svg'}
             post={post}
+            data={sectionData}
           />
         )
       
@@ -373,43 +372,40 @@ export function DynamicSectionRenderer({ sections, post }: DynamicSectionRendere
       case 'author-block':
         return <AuthorBlock key={section.id} />
       
-      // Starter Pack / Overview Intro
+      // Starter Pack Section
       case 'StarterPackSection':
       case 'starter-pack-section':
-      case 'OverviewIntro':
       case 'overview-intro':
+        // Check if this is translated content with direct starter pack data
+        if (sectionData.highlights && sectionData.destination) {
+          console.log('🎯 Rendering StarterPackSection with direct translated data:', sectionData)
+          return (
+            <StarterPackSection 
+              key={section.id}
+              data={sectionData}
+            />
+          )
+        }
+        
         // Check if we have database starter pack data in the section data
         if (sectionData.starterPackData) {
-          // Use database data if available
+          // Use database data if available - convert to StarterPackSection format
           const starterPackData = sectionData.starterPackData
-          const highlights = starterPackData.highlights.map((h: any) => {
-            const iconMap: Record<string, any> = {
-              'clock': Clock,
-              'dollar': DollarSign,
-              'camera': Camera,
-              'heart': Heart
-            }
-            
-            return {
-              icon: iconMap[h.icon] || Clock,
-              title: h.title,
-              value: h.value,
-              description: h.description
-            }
-          })
+          const starterPackFormatData = {
+            destination: post?.title?.split(':')[0] || 'destination',
+            bestTime: 'Best season to visit',
+            duration: '5-7 days recommended',
+            budget: '€100-200 per day',
+            currency: 'EUR',
+            language: 'Local language',
+            timezone: 'Local timezone',
+            highlights: starterPackData.highlights.map((h: any) => h.title || h.value || 'Highlight')
+          }
 
           return (
-            <OverviewIntro 
+            <StarterPackSection 
               key={section.id}
-              title={starterPackData.section_title}
-              description={starterPackData.section_description}
-              destination={post?.title?.split(':')[0] || 'destination'}
-              badge={starterPackData.section_badge}
-              highlights={highlights}
-              sections={starterPackData.features.map((f: any) => ({
-                title: f.title,
-                content: f.content
-              }))}
+              data={starterPackFormatData}
             />
           )
         }
@@ -754,29 +750,35 @@ export function DynamicSectionRenderer({ sections, post }: DynamicSectionRendere
             ? `Why ${destination} ${destination.toLowerCase().includes('region') || destination.toLowerCase().includes('coast') ? 'Hits' : 'Hit'} Different`
             : 'Why This Destination Hits Different')
 
+        // Convert the hardcoded content to StarterPackSection format
+        const starterPackData = {
+          destination: destination,
+          bestTime: 'Best season to visit',
+          duration: '5-7 days recommended', 
+          budget: '€100-200 per day',
+          currency: 'EUR',
+          language: 'Local language',
+          timezone: 'Local timezone',
+          highlights: customHighlights ? customHighlights.map((h: any) => h.title + ': ' + h.value) : []
+        }
+
         return (
-          <OverviewIntro 
+          <StarterPackSection 
             key={section.id}
-            title={destinationTitle}
-            description={sectionData.description || 'Every destination has its magic - from that first moment you arrive to your last sunset, every experience here feels like it\'s straight out of a dream. And honestly? The hype is real.'}
-            destination={destination}
-            badge={badge}
-            highlights={highlights}
-            sections={customSections}
+            data={starterPackData}
           />
         )
       
-      // Starter Pack Section - Skip to avoid duplication with OverviewIntro
-      case 'StarterPackSection':
-      case 'starter-pack-section':
-        // This content is handled by OverviewIntro, skip to avoid duplication
-        return null
 
-      // Why Destination Different - Skip to avoid duplication with OverviewIntro
+      // Why Destination Different - Handle as separate content
       case 'WhyDestinationDifferent':
       case 'why-destination-different':
-        // This content is handled by OverviewIntro, skip to avoid duplication
-        return null
+        return (
+          <WhyDestinationDifferent 
+            key={section.id}
+            data={sectionData}
+          />
+        )
       
       // Blog Content Section (main content)
       case 'BlogContentSection':
@@ -980,18 +982,25 @@ export function DynamicSectionRenderer({ sections, post }: DynamicSectionRendere
   // Track rendered section types to avoid duplicates
   const renderedSectionTypes = new Set()
 
+  // Pre-calculate the first content section index to avoid O(n²) complexity
+  let firstContentSectionIndex = -1
+  for (let i = 0; i < sortedSections.length; i++) {
+    const section = sortedSections[i]
+    const isHeroSection = section.template?.component_name === 'HeroSection' || section.template?.component_name === 'hero-section'
+    if (!isHeroSection) {
+      firstContentSectionIndex = i
+      break
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {sortedSections.map((section, index) => {
         const sectionType = section.template?.component_name || section.template_id
         
-        // Identify why-different sections (including OverviewIntro that renders why content)
+        // Identify why-different sections
         const isWhySection = sectionType === 'WhyDestinationDifferent' || 
                            sectionType === 'why-destination-different' ||
-                           sectionType === 'OverviewIntro' || 
-                           sectionType === 'overview-intro' || 
-                           sectionType === 'StarterPackSection' || 
-                           sectionType === 'starter-pack-section' ||
                            (section.title && section.title.toLowerCase().includes('why') && 
                             section.title.toLowerCase().includes('different'))
         
@@ -1000,7 +1009,7 @@ export function DynamicSectionRenderer({ sections, post }: DynamicSectionRendere
           return null
         }
         
-        // Mark why-different sections as rendered (including OverviewIntro)
+        // Mark why-different sections as rendered
         if (isWhySection) {
           renderedSectionTypes.add('why-different')
         }
@@ -1022,9 +1031,7 @@ export function DynamicSectionRenderer({ sections, post }: DynamicSectionRendere
         }
         
         // Position first content section to peek above hero with smooth transition
-        const isFirstContentSection = index === 1 || (index > 0 && sortedSections.slice(0, index).every(s => 
-          s.template?.component_name === 'HeroSection' || s.template?.component_name === 'hero-section'
-        ))
+        const isFirstContentSection = index === firstContentSectionIndex
         
         if (isFirstContentSection) {
           return (

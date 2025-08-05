@@ -22,7 +22,7 @@ import {
   Trash2,
   RefreshCw
 } from 'lucide-react'
-import TranslationService from '@/lib/services/translationService'
+import { getSupportedLanguages } from '@/lib/constants/supportedLanguages'
 import { supabase } from '@/lib/supabase'
 import { TranslatedPostEditor } from './TranslatedPostEditor'
 
@@ -64,7 +64,7 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
   const [editingTranslation, setEditingTranslation] = useState<string | null>(null)
   const [showTranslatedEditor, setShowTranslatedEditor] = useState(false)
 
-  const supportedLanguages = TranslationService.getSupportedLanguages().filter(lang => lang.code !== 'en')
+  const supportedLanguages = getSupportedLanguages().filter(lang => lang.code !== 'en')
 
   useEffect(() => {
     fetchTranslations()
@@ -73,23 +73,27 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
 
   const checkApiKeyAvailability = async () => {
     try {
-      // Check environment variable or database for API key
+      // Check environment variable or database for Lingo.dev API key
       const response = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           postId,
-          targetLanguage: 'de',
+          targetLanguage: 'es', // Changed to Spanish for consistency
           testMode: true
         })
       })
       const result = await response.json()
       
       if (result.success && result.apiKeyProvided) {
-        setApiKey('available') // Set a flag to indicate API key is available
+        setApiKey('available') // Set a flag to indicate Lingo.dev API key is available
+        setError(null) // Clear any previous errors
+      } else {
+        setError(result.error || 'Lingo.dev API key not found')
       }
     } catch (error) {
-      console.log('API key check failed:', error)
+      console.log('Lingo.dev API key check failed:', error)
+      setError('Failed to check Lingo.dev API key')
     }
   }
 
@@ -258,20 +262,20 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
         <div className="flex items-center gap-2">
           <Globe className="h-4 w-4 text-blue-600" />
           <span className="text-sm font-medium">Translation Service:</span>
-          <Badge variant="outline">Google Translate</Badge>
+          <Badge variant="outline">Lingo.dev AI Translation</Badge>
           <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <Settings className="h-4 w-4 mr-2" />
-                {apiKey ? 'Update API Key' : 'Set API Key'}
+                {apiKey ? 'Update Lingo.dev Key' : 'Set Lingo.dev Key'}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Google Translate API Key</DialogTitle>
+                <DialogTitle>Lingo.dev API Key</DialogTitle>
                 <DialogDescription>
-                  Enter your Google Translate API key to enable automatic translations.
-                  You can get an API key from the Google Cloud Console.
+                  Enter your Lingo.dev API key to enable AI-powered translations.
+                  Sign up for free at https://lingo.dev (10,000 words/month included).
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -281,7 +285,7 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
                     type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter your Google Translate API key"
+                    placeholder="Enter your Lingo.dev API key (api_...)"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -474,13 +478,14 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
         <Alert>
           <Globe className="h-4 w-4" />
           <AlertDescription>
-            <strong>Enhanced Translation System:</strong>
+            <strong>Lingo.dev AI Translation System:</strong>
             <ul className="mt-2 space-y-1 text-sm">
-              <li>• ✨ <strong>Force Complete Translation:</strong> All new translations use enhanced section-by-section processing</li>
-              <li>• 🔄 <strong>Re-translate existing:</strong> Use "Complete Translation" button to ensure all sections are fully translated</li>
-              <li>• 🌐 Each language creates a separate URL (e.g., /blog/post-title/de)</li>
+              <li>• 🤖 <strong>AI-Powered:</strong> Context-aware translations using advanced language models</li>
+              <li>• 🆓 <strong>Free Tier:</strong> 10,000 words per month included at no cost</li>
+              <li>• 🎯 <strong>Section-by-Section:</strong> Each content section is individually translated for accuracy</li>
+              <li>• 🌐 Each language creates a separate URL (e.g., /blog/post-title/es)</li>
               <li>• ✏️ Review and edit translations for accuracy and cultural context</li>
-              <li>• 💡 Enhanced mode captures more translatable content including titles, descriptions, and metadata</li>
+              <li>• 🏷️ Translates titles, descriptions, SEO metadata and all content</li>
             </ul>
           </AlertDescription>
         </Alert>

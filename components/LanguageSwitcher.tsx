@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Globe, ChevronDown, Check, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
-import TranslationService from '@/lib/services/translationService'
+import { getSupportedLanguages } from '@/lib/constants/supportedLanguages'
 
 interface Translation {
   language_code: string
@@ -29,7 +29,7 @@ export function LanguageSwitcher({
 }: LanguageSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false)
   
-  const supportedLanguages = TranslationService.getSupportedLanguages()
+  const supportedLanguages = getSupportedLanguages()
   const currentLang = supportedLanguages.find(lang => lang.code === currentLanguage)
   
   // Map available translations to full language info
