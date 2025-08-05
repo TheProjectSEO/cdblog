@@ -1,3 +1,5 @@
+'use client'
+
 import { HeroSection } from './sections/hero-section'
 import { AuthorBlock } from './author-block'
 import { RichTextEditor } from './rich-text-editor'
@@ -12,6 +14,7 @@ import { WhereToStay } from './where-to-stay'
 import { WhyDestinationDifferent } from './why-destination-different'
 import { InternalLinksSection } from './internal-links-section'
 import { Clock, DollarSign, Camera, Heart } from 'lucide-react'
+import { useTranslations, getDestinationKey } from '@/lib/hooks/useTranslations'
 
 interface ModernSection {
   id: string
@@ -30,6 +33,7 @@ interface ModernSection {
 interface DynamicSectionRendererProps {
   sections: ModernSection[]
   post?: any
+  language?: string // Add language prop
 }
 
 // Default internal links for auto-generation based on destination
@@ -292,7 +296,9 @@ function getTemplateInfo(template_id: string) {
   return templateMap[template_id] || null
 }
 
-export function DynamicSectionRenderer({ sections, post }: DynamicSectionRendererProps) {
+export function DynamicSectionRenderer({ sections, post, language = 'en' }: DynamicSectionRendererProps) {
+  // Initialize translation hook
+  const { t } = useTranslations(language)
   // Debug: Log what we're receiving
   console.log('🎨 DynamicSectionRenderer received:', {
     sectionsCount: sections.length,
@@ -418,8 +424,56 @@ export function DynamicSectionRenderer({ sections, post }: DynamicSectionRendere
         let customSections = null
         let customBadge = null
 
-        // Italian Lakes specific content
-        if (postTitle.toLowerCase().includes('italian') && postTitle.toLowerCase().includes('lakes')) {
+        // Use translations for destination-specific content
+        const destinationKey = getDestinationKey(postTitle)
+        
+        if (destinationKey !== 'default') {
+          destination = t(`destinations.${destinationKey}.name`, destination)
+          customBadge = t(`destinations.${destinationKey}.starterPackBadge`, customBadge)
+          
+          // Get translated highlights
+          customHighlights = [
+            {
+              icon: Clock,
+              title: t('components.starterPackSection.highlights.perfectDuration', "Perfect Duration"),
+              value: "5-7 days",
+              description: "Just right to explore all three lakes",
+            },
+            {
+              icon: DollarSign,
+              title: t('components.starterPackSection.highlights.budgetRange', "Budget Range"), 
+              value: "€80-250",
+              description: t('components.starterPackSection.budgetUnits.perDay', 'per day') + ", luxury optional",
+            },
+            {
+              icon: Camera,
+              title: t('components.starterPackSection.highlights.mustSeeSpots', "Must-See Spots"),
+              value: "15+ spots",
+              description: "From Como to Garda",
+            },
+            {
+              icon: Heart,
+              title: t('components.starterPackSection.highlights.vibeCheck', "Vibe Check"),
+              value: "Pure elegance",
+              description: "Alpine beauty meets Italian charm",
+            },
+          ]
+          
+          // Get translated section content 
+          customSections = [
+            {
+              title: t(`destinations.${destinationKey}.whyDifferent.title1`, "Natural beauty that steals your breath"),
+              content: t(`destinations.${destinationKey}.whyDifferent.content1`, "Crystal-clear waters reflecting snow-capped Alps, charming lakeside villages, and villa gardens straight from a fairytale. The Italian Lakes aren't just scenic - they're soul-stirring.")
+            },
+            {
+              title: t(`destinations.${destinationKey}.whyDifferent.title2`, "Luxury that feels effortless"),
+              content: t(`destinations.${destinationKey}.whyDifferent.content2`, "From George Clooney's Lake Como to exclusive villa stays, this region does luxury with Italian flair. It's sophisticated without being stuffy, elegant without being pretentious.")
+            }
+          ]
+        }
+        
+        // Italian Lakes specific content (fallback for backward compatibility)
+        else if (postTitle.toLowerCase().includes('italian') && postTitle.toLowerCase().includes('lakes')) {
           destination = 'Italian Lakes Region'
           customBadge = '🏔️ Your Italian Lakes starter pack'
           customHighlights = [
@@ -813,9 +867,10 @@ export function DynamicSectionRenderer({ sections, post }: DynamicSectionRendere
           <ThingsToDoCards 
             key={section.id} 
             destination={post?.title || ''} 
-            title={sectionData.title}
-            description={sectionData.description}
-            activities={sectionData.activities || []} 
+            title={sectionData.title || t('components.thingsToDoCards.defaultTitle', 'Things To Do')}
+            description={sectionData.description || t('components.thingsToDoCards.defaultDescription', 'Discover the best activities and experiences')}
+            activities={sectionData.activities || []}
+            language={language}
           />
         )
       
@@ -855,10 +910,11 @@ export function DynamicSectionRenderer({ sections, post }: DynamicSectionRendere
         return (
           <HotelCarousel 
             key={section.id}
-            title={sectionData.title || 'Where to Stay'}
-            description={sectionData.description || 'Find the perfect accommodation for your trip'}
+            title={sectionData.title || t('components.hotelCarousel.defaultTitle', 'Where to Stay')}
+            description={sectionData.description || t('components.hotelCarousel.defaultDescription', 'Find the perfect accommodation for your trip')}
             destination={hotelDestination}
             hotels={sectionData.hotels || []}
+            language={language}
           />
         )
       

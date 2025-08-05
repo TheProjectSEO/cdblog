@@ -5,7 +5,7 @@ import DirectGeminiTranslationService from '@/lib/services/directGeminiTranslati
 
 export async function POST(request: NextRequest) {
   try {
-    const { postId, targetLanguage, apiKey, testMode, forceCompleteTranslation } = await request.json()
+    const { postId, targetLanguage, apiKey, testMode, forceCompleteTranslation, includeUITranslation } = await request.json()
 
     if (!postId || !targetLanguage) {
       return NextResponse.json(
@@ -424,6 +424,57 @@ export async function POST(request: NextRequest) {
         }
         
         console.log('Finished translating all sections')
+      }
+
+      // Also translate UI strings if requested
+      if (includeUITranslation) {
+        console.log('Starting UI translation...')
+        try {
+          // Import UI strings
+          const uiStrings = await import('@/lib/translations/ui-strings.json')
+          
+          // Extract translatable strings
+          const translatableStrings = extractTranslatableStringsFromUI(uiStrings.default.en)
+          console.log(`Found ${translatableStrings.length} UI strings to translate`)
+          
+          if (translatableStrings.length > 0) {
+            // Translate UI strings
+            const uiTranslationResult = await translationService.translateText({
+              text: translatableStrings,
+              targetLanguage
+            })
+            
+            if (uiTranslationResult.success) {
+              const translatedUITexts = Array.isArray(uiTranslationResult.translatedText) 
+                ? uiTranslationResult.translatedText 
+                : [uiTranslationResult.translatedText]
+              
+              // Build translated UI structure
+              const translatedUIStrings = buildTranslatedUIStructure(
+                uiStrings.default.en,
+                translatableStrings,
+                translatedUITexts
+              )
+              
+              // Save or update UI translations
+              await supabase
+                .from('ui_translations')
+                .upsert({
+                  language_code: targetLanguage,
+                  translated_strings: translatedUIStrings,
+                  translation_status: 'completed',
+                  updated_at: new Date().toISOString()
+                })
+              
+              console.log('UI translation completed successfully')
+            } else {
+              console.error('UI translation failed:', uiTranslationResult.error)
+            }
+          }
+        } catch (uiError) {
+          console.error('Error during UI translation:', uiError)
+          // Don't fail the entire translation if UI translation fails
+        }
       }
 
       return NextResponse.json({
@@ -984,4 +1035,61 @@ function replaceSectionTextsEnhanced(sectionData: any, originalTexts: string[], 
   const result = replaceInObjectEnhanced(sectionData)
   console.log(`Enhanced replacement completed`)
   return result
+}
+
+// Helper function to extract all translatable strings from UI structure
+function extractTranslatableStringsFromUI(obj: any, path: string = ''): string[] {
+  const strings: string[] = []
+  
+  function extract(obj: any, currentPath: string = '') {
+    if (typeof obj === 'string' && obj.trim().length > 0) {
+      strings.push(obj)
+    } else if (Array.isArray(obj)) {
+      obj.forEach((item, index) => extract(item, `${currentPath}[${index}]`))
+    } else if (obj && typeof obj === 'object') {
+      Object.keys(obj).forEach(key => {
+        const newPath = currentPath ? `${currentPath}.${key}` : key
+        extract(obj[key], newPath)
+      })
+    }
+  }
+  
+  extract(obj, path)
+  return [...new Set(strings)] // Remove duplicates
+}
+
+// Helper function to rebuild the UI strings structure with translations
+function buildTranslatedUIStructure(
+  originalStructure: any,
+  originalStrings: string[],
+  translatedStrings: string[]
+): any {
+  if (originalStrings.length !== translatedStrings.length) {
+    console.warn(`UI String count mismatch: ${originalStrings.length} original vs ${translatedStrings.length} translated`)
+  }
+
+  // Create mapping of original to translated strings
+  const translationMap = new Map<string, string>()
+  for (let i = 0; i < Math.min(originalStrings.length, translatedStrings.length); i++) {
+    if (originalStrings[i] && translatedStrings[i]) {
+      translationMap.set(originalStrings[i], translatedStrings[i])
+    }
+  }
+
+  function replaceStrings(obj: any): any {
+    if (typeof obj === 'string') {
+      return translationMap.get(obj) || obj
+    } else if (Array.isArray(obj)) {
+      return obj.map(item => replaceStrings(item))
+    } else if (obj && typeof obj === 'object') {
+      const result: any = {}
+      Object.keys(obj).forEach(key => {
+        result[key] = replaceStrings(obj[key])
+      })
+      return result
+    }
+    return obj
+  }
+
+  return replaceStrings(originalStructure)
 }

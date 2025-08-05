@@ -27,9 +27,10 @@ interface KlookStyleBlogProps {
   featuredPosts: BlogPost[]
   totalPosts: number
   categories: string[]
+  additionalCategories?: string[]
 }
 
-export function KlookStyleBlog({ recentPosts, featuredPosts, totalPosts, categories }: KlookStyleBlogProps) {
+export function KlookStyleBlog({ recentPosts, featuredPosts, totalPosts, categories, additionalCategories = [] }: KlookStyleBlogProps) {
   const [posts, setPosts] = useState<BlogPost[]>(recentPosts)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<BlogPost[]>([])
@@ -134,7 +135,7 @@ export function KlookStyleBlog({ recentPosts, featuredPosts, totalPosts, categor
       <section 
         className="relative min-h-[80vh] flex items-center justify-center bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.3) 100%), url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')`
+          backgroundImage: `linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.3) 100%), url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?ixlib=rb-4.0.3&auto=format&fit=crop&w=2835&q=80')`
         }}
       >
         {/* Background overlay */}
@@ -490,24 +491,81 @@ export function KlookStyleBlog({ recentPosts, featuredPosts, totalPosts, categor
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             {categories.map((category) => (
               <Button
                 key={category}
                 variant="outline"
                 onClick={() => handleCategoryClick(category)}
-                className={`h-12 border-2 transition-all duration-200 ${
+                className={`h-14 px-6 border-2 transition-all duration-200 font-medium ${
                   selectedCategory === category
-                    ? 'border-orange-500 text-orange-600 bg-orange-50'
-                    : 'border-gray-200 hover:border-orange-300 hover:text-orange-600 hover:bg-orange-50'
+                    ? 'border-brand-purple text-white bg-brand-purple shadow-lg'
+                    : 'border-brand-purple text-brand-purple bg-brand-purple/10 hover:bg-brand-purple/20 hover:border-brand-purple shadow-sm hover:shadow-md'
                 }`}
               >
                 {category}
               </Button>
             ))}
+            
+            {/* Additional categories as colorful rectangular boxes */}
+            {additionalCategories.map((category) => {
+              // Define color schemes for each category
+              const getColorScheme = (cat: string) => {
+                switch (cat.toLowerCase()) {
+                  case 'nightlife':
+                    return selectedCategory === cat
+                      ? 'border-purple-500 text-white bg-purple-500 shadow-lg'
+                      : 'border-purple-300 text-purple-700 bg-purple-100 hover:bg-purple-200 hover:border-purple-400 shadow-sm hover:shadow-md'
+                  case 'food':
+                    return selectedCategory === cat
+                      ? 'border-orange-500 text-white bg-orange-500 shadow-lg'
+                      : 'border-orange-300 text-orange-700 bg-orange-100 hover:bg-orange-200 hover:border-orange-400 shadow-sm hover:shadow-md'
+                  case 'adventure':
+                    return selectedCategory === cat
+                      ? 'border-green-500 text-white bg-green-500 shadow-lg'
+                      : 'border-green-300 text-green-700 bg-green-100 hover:bg-green-200 hover:border-green-400 shadow-sm hover:shadow-md'
+                  case 'beaches':
+                    return selectedCategory === cat
+                      ? 'border-blue-500 text-white bg-blue-500 shadow-lg'
+                      : 'border-blue-300 text-blue-700 bg-blue-100 hover:bg-blue-200 hover:border-blue-400 shadow-sm hover:shadow-md'
+                  case 'culture':
+                    return selectedCategory === cat
+                      ? 'border-pink-500 text-white bg-pink-500 shadow-lg'
+                      : 'border-pink-300 text-pink-700 bg-pink-100 hover:bg-pink-200 hover:border-pink-400 shadow-sm hover:shadow-md'
+                  case 'hiking':
+                    return selectedCategory === cat
+                      ? 'border-emerald-500 text-white bg-emerald-500 shadow-lg'
+                      : 'border-emerald-300 text-emerald-700 bg-emerald-100 hover:bg-emerald-200 hover:border-emerald-400 shadow-sm hover:shadow-md'
+                  case 'city guides':
+                    return selectedCategory === cat
+                      ? 'border-indigo-500 text-white bg-indigo-500 shadow-lg'
+                      : 'border-indigo-300 text-indigo-700 bg-indigo-100 hover:bg-indigo-200 hover:border-indigo-400 shadow-sm hover:shadow-md'
+                  case 'hidden gems':
+                    return selectedCategory === cat
+                      ? 'border-rose-500 text-white bg-rose-500 shadow-lg'
+                      : 'border-rose-300 text-rose-700 bg-rose-100 hover:bg-rose-200 hover:border-rose-400 shadow-sm hover:shadow-md'
+                  default:
+                    return selectedCategory === cat
+                      ? 'border-gray-500 text-white bg-gray-500 shadow-lg'
+                      : 'border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-200 hover:border-gray-400 shadow-sm hover:shadow-md'
+                }
+              }
+
+              return (
+                <Button
+                  key={category}
+                  variant="outline"
+                  onClick={() => handleCategoryClick(category)}
+                  className={`h-14 px-6 border-2 transition-all duration-200 font-medium ${getColorScheme(category)}`}
+                >
+                  {category}
+                </Button>
+              )
+            })}
           </div>
         </div>
       </section>
+
     </div>
   )
 }

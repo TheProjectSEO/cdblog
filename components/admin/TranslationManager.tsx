@@ -152,7 +152,8 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
           postId,
           targetLanguage: languageCode,
           apiKey: apiKey === 'available' ? undefined : apiKey.trim(),
-          forceCompleteTranslation: true // Add flag to ensure complete section-by-section translation
+          forceCompleteTranslation: true, // Add flag to ensure complete section-by-section translation
+          includeUITranslation: true // Also translate UI elements
         })
       })
 

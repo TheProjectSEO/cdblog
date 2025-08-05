@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { getRecentPosts, getPostsCount, getPopularCategories, getFeaturedPosts } from "@/lib/supabase"
 import { KlookStyleBlog } from "@/components/klook-style-blog"
+import { Footer } from "@/components/footer"
 
 // Default categories if database is empty
 const defaultCategories = [
@@ -61,7 +62,9 @@ export default async function BlogPage() {
         featuredPosts={featuredPosts || recentPosts.slice(0, 6)}
         totalPosts={totalPosts}
         categories={displayCategories}
+        additionalCategories={defaultCategories}
       />
+      <Footer />
     </div>
   )
 }

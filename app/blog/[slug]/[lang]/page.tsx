@@ -500,6 +500,7 @@ export default async function TranslatedPostPage({ params }: PageProps) {
         <DynamicSectionRenderer 
           sections={sectionsToRender} 
           post={translatedPostForRenderer}
+          language={resolvedParams.lang}
         />
       ) : (
         <div className="min-h-screen bg-gray-50">

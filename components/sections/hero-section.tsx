@@ -80,7 +80,7 @@ export function HeroSection({
       return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
     } else if (postTitle.includes('naples') || postTitle.includes('amalfi')) {
       // Stunning Amalfi Coast with vibrant turquoise waters and colorful cliffside villages - Positano view
-      return "https://images.unsplash.com/photo-1520637836862-4d197d17c50a?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+      return "https://images.unsplash.com/photo-1594736797933-d0ca881b3011?q=80&w=2940&auto=format&fit=crop"
     } else if (postTitle.includes('rotterdam')) {
       // Rotterdam nightlife with vibrant skyline image
       return "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
