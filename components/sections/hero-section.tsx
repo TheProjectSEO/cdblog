@@ -232,7 +232,7 @@ export function HeroSection({
 
             
             {/* Badges container - aligned with CTA section */}
-            <div className={`flex items-center gap-2 sm:gap-3 mb-8 overflow-x-auto scrollbar-hide ${getTextSizeClass('', 'badges')}`} style={{ scrollBehavior: 'smooth' }}>
+            <div className={`flex items-center gap-2 sm:gap-3 mb-8 overflow-x-auto scrollbar-hide pr-8 ${getTextSizeClass('', 'badges')}`} style={{ scrollBehavior: 'smooth' }}>
               {badges?.location?.show && (
                 <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg flex-shrink-0">
                   <MapPin className="w-4 h-4 text-white" />

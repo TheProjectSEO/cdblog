@@ -42,6 +42,8 @@ Icon?
 # Ignore JS and MD files (if you must)
 **/*.js
 **/*.md
+**/*.json
+**/*.html
 
 # Optional: macOS system file
 *.DS_Store
