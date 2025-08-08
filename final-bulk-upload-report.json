@@ -1,0 +1,22 @@
+{
+  "testType": "Final Bulk Upload System Test",
+  "summary": {
+    "totalTests": 1,
+    "passed": 0,
+    "failed": 1,
+    "warnings": 0,
+    "successRate": 0,
+    "postsCreated": 0
+  },
+  "createdPosts": [],
+  "testDetails": [
+    {
+      "status": "FAIL",
+      "message": "CSV file has insufficient data",
+      "details": {},
+      "timestamp": "2025-08-05T21:39:06.804Z"
+    }
+  ],
+  "recommendations": [],
+  "timestamp": "2025-08-05T21:39:06.807Z"
+}

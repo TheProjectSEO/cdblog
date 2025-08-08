@@ -6,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { HelpCircle, MessageCircle, Sparkles } from 'lucide-react'
 
 interface FAQ {
   id?: string | number
@@ -74,30 +75,66 @@ export function FAQSection({ faqs: propFaqs }: FAQSectionProps) {
   const faqs = propFaqs || defaultFaqs
 
   return (
-    <section className="bg-white rounded-2xl shadow-lg p-8">
-      <div className="text-center mb-8">
-        <h2 className="text-4xl font-bold text-gray-900 mb-4 font-sans">Frequently Asked Questions</h2>
-        <p className="text-lg text-gray-600 max-w-3xl mx-auto font-light">
-          Everything you need to know for an amazing Paris trip.
+    <section className="relative bg-gradient-to-br from-purple-50 via-white to-indigo-50 rounded-3xl shadow-xl p-12 overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-transparent to-indigo-600/5"></div>
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-purple-200/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-indigo-200/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+      
+      {/* Header */}
+      <div className="relative z-10 text-center mb-12">
+        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-full px-6 py-3 mb-6 hover:from-purple-200 hover:to-indigo-200 transition-all duration-300 cursor-default">
+          <HelpCircle className="w-5 h-5 text-purple-600 animate-pulse" />
+          <span className="text-sm font-semibold text-purple-700">Got Questions?</span>
+        </div>
+        
+        <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-900 via-purple-700 to-indigo-700 bg-clip-text text-transparent mb-6 leading-tight hover:from-purple-800 hover:via-purple-600 hover:to-indigo-600 transition-all duration-500 cursor-default">
+          Frequently Asked Questions
+        </h2>
+        
+        <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8">
+          Everything you need to know for an amazing trip, answered by travel experts.
         </p>
       </div>
 
-      <Accordion type="single" collapsible className="space-y-4">
-        {(faqs || []).map((faq, index) => (
-          <AccordionItem 
-            key={faq.id || index} 
-            value={`faq-${faq.id || index}`}
-            className="bg-gray-50 rounded-lg border-0 shadow-sm"
-          >
-            <AccordionTrigger className="px-6 py-4 text-left hover:no-underline">
-              <span className="font-semibold text-gray-900">{faq.question}</span>
-            </AccordionTrigger>
-            <AccordionContent className="px-6 pb-4">
-              <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+      {/* FAQ Accordion */}
+      <div className="relative z-10 max-w-4xl mx-auto">
+        <Accordion type="single" collapsible className="space-y-4">
+          {(faqs || []).map((faq, index) => (
+            <AccordionItem 
+              key={faq.id || index} 
+              value={`faq-${faq.id || index}`}
+              className="bg-white/80 backdrop-blur-sm rounded-2xl border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-white group overflow-hidden"
+            >
+              <AccordionTrigger className="px-8 py-6 text-left hover:no-underline group-hover:bg-gradient-to-r group-hover:from-purple-50 group-hover:to-indigo-50 transition-all duration-300">
+                <div className="flex items-start gap-4 w-full">
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="p-2 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 group-hover:from-purple-200 group-hover:to-indigo-200 transition-all duration-300">
+                      <MessageCircle className="w-4 h-4 text-purple-600 group-hover:text-purple-700" />
+                    </div>
+                  </div>
+                  <span className="font-bold text-gray-900 group-hover:bg-gradient-to-r group-hover:from-purple-700 group-hover:to-indigo-700 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 text-lg leading-relaxed text-left">
+                    {faq.question}
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-8 pb-8">
+                <div className="ml-12 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 rounded-xl p-6 border-l-4 border-purple-200">
+                  <p className="text-gray-700 leading-relaxed text-lg">{faq.answer}</p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </div>
+
+      {/* Bottom decoration */}
+      <div className="relative z-10 text-center mt-12">
+        <div className="inline-flex items-center gap-2 text-purple-600">
+          <Sparkles className="w-5 h-5" />
+          <span className="text-sm font-medium">Still have questions? We're here to help!</span>
+        </div>
+      </div>
     </section>
   )
 }

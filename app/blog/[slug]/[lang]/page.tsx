@@ -215,7 +215,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // Add all completed translations
   if (allTranslations && allTranslations.length > 0) {
     allTranslations.forEach(translation => {
-      languages[translation.language_code] = `/blog/${resolvedParams.slug}/${translation.language_code}`
+      languages[translation.language_code] = `/blog/${post.original_post.slug}/${translation.language_code}`
     })
   }
 
@@ -476,11 +476,13 @@ export default async function TranslatedPostPage({ params }: PageProps) {
           <div className="flex items-center justify-between w-full">
             {/* Left side: Logo */}
             <div className="flex items-center">
-              <LogoImage 
-                src="https://www.cuddlynest.com/images/logo/cn_logo_hpv2_whit_en.png"
-                alt="CuddlyNest Logo"
-                className="h-10 w-auto"
-              />
+              <Link href="/blog">
+                <LogoImage 
+                  src="https://www.cuddlynest.com/images/logo/cn_logo_hpv2_whit_en.png"
+                  alt="CuddlyNest Logo"
+                  className="h-10 w-auto cursor-pointer"
+                />
+              </Link>
             </div>
             
             {/* Right side: Language switcher */}

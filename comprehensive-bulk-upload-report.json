@@ -1,0 +1,122 @@
+{
+  "testType": "Comprehensive Bulk Upload System Test",
+  "summary": {
+    "totalTests": 17,
+    "passed": 10,
+    "failed": 7,
+    "warnings": 0,
+    "successRate": 59,
+    "postsCreated": 4
+  },
+  "createdPosts": [
+    "aff66136-5157-464a-808e-a3702e63c891",
+    "bdf5160a-5013-4dfa-af03-a7535fb165ea",
+    "8f0dec5f-6d80-437c-99e0-d40cf05d2ccb",
+    "54df2eff-c57d-4d9b-bc7f-f02b6c35eb96"
+  ],
+  "details": [
+    {
+      "status": "PASS",
+      "message": "Cleanup completed successfully",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:15.645Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Post created successfully: Tokyo: The Ultimate Modern Metropolis Guide (ID: aff66136-5157-464a-808e-a3702e63c891)",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:16.053Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Created 9 sections for post",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:16.259Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Created 9 sections for post",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:16.995Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Post 1 created: Tokyo: The Ultimate Modern Metropolis Guide (tokyo-ultimate-guide-1)",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:16.995Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Created 9 sections for post",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:17.533Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Post 2 created: Bali Bliss: Your Complete Paradise Guide (bali-complete-paradise-guide)",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:17.533Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Created 9 sections for post",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:17.975Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Post 3 created: Santorini Secrets: Beyond the Instagram Photos (santorini-secrets-authentic-guide)",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:17.975Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Successfully created 3 posts with all sections",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:17.975Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Post aff66136-5157-464a-808e-a3702e63c891 has only 17/9 sections",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:18.210Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Post bdf5160a-5013-4dfa-af03-a7535fb165ea has only 17/9 sections",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:18.366Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Post 8f0dec5f-6d80-437c-99e0-d40cf05d2ccb has only 17/9 sections",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:18.511Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Post 54df2eff-c57d-4d9b-bc7f-f02b6c35eb96 has only 17/9 sections",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:18.690Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Frontend returned status 500: http://localhost:3000/blog/tokyo-ultimate-guide",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:19.178Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Frontend returned status 500: http://localhost:3000/blog/bali-complete-paradise-guide",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:19.578Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Frontend returned status 500: http://localhost:3000/blog/santorini-secrets-authentic-guide",
+      "details": {},
+      "timestamp": "2025-08-05T21:36:19.975Z"
+    }
+  ],
+  "timestamp": "2025-08-05T21:36:19.975Z"
+}

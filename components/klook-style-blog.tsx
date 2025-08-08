@@ -28,9 +28,13 @@ interface KlookStyleBlogProps {
   totalPosts: number
   categories: string[]
   additionalCategories?: string[]
+  blogLogo?: {
+    url: string
+    alt: string
+  }
 }
 
-export function KlookStyleBlog({ recentPosts, featuredPosts, totalPosts, categories, additionalCategories = [] }: KlookStyleBlogProps) {
+export function KlookStyleBlog({ recentPosts, featuredPosts, totalPosts, categories, additionalCategories = [], blogLogo }: KlookStyleBlogProps) {
   const [posts, setPosts] = useState<BlogPost[]>(recentPosts)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<BlogPost[]>([])
@@ -143,8 +147,29 @@ export function KlookStyleBlog({ recentPosts, featuredPosts, totalPosts, categor
         
         {/* CuddlyNest Logo - Top Left */}
         <div className="absolute top-6 left-6 z-20">
-          <Link href="/" className="inline-block">
-            <svg width="160" height="48" viewBox="0 0 160 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <Link href="/blog" className="inline-block">
+            {blogLogo ? (
+              <img 
+                src={blogLogo.url} 
+                alt={blogLogo.alt}
+                className="h-12 object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  // Show fallback SVG if image fails
+                  const svg = target.nextElementSibling as HTMLElement
+                  if (svg) svg.style.display = 'block'
+                }}
+              />
+            ) : null}
+            <svg 
+              width="160" 
+              height="48" 
+              viewBox="0 0 160 48" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ display: blogLogo ? 'none' : 'block' }}
+            >
               {/* Bird shapes */}
               <path d="M8 20c2-3 6-5 10-3 2 1 3 3 2 5-1 2-3 3-5 2-3-1-5-2-7-4z" fill="white"/>
               <path d="M12 16c1-1 3-1 4 0 1 1 1 2 0 3-1 1-2 1-3 0-1-1-1-2-1-3z" fill="white" opacity="0.8"/>

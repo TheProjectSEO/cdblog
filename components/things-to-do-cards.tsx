@@ -35,6 +35,15 @@ interface ThingsToDoCardsProps {
 
 export function ThingsToDoCards({ destination = '', title: customTitle, description: customDescription, activities: providedActivities }: ThingsToDoCardsProps) {
   
+  // Debug: Log what data we're receiving
+  console.log('ThingsToDoCards received data:', {
+    destination,
+    customTitle,
+    customDescription,
+    providedActivities: providedActivities?.length || 0,
+    firstActivity: providedActivities?.[0]
+  })
+  
   // Get activities based on destination 
   const getActivitiesForDestination = (dest: string) => {
     const postTitle = dest.toLowerCase()

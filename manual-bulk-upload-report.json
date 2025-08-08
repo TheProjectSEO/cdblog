@@ -1,0 +1,72 @@
+{
+  "summary": {
+    "totalTests": 10,
+    "passed": 2,
+    "failed": 7,
+    "warnings": 1,
+    "successRate": 22
+  },
+  "details": [
+    {
+      "status": "PASS",
+      "message": "Bulk upload page loaded successfully",
+      "details": {},
+      "timestamp": "2025-08-05T21:30:12.028Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Template selection failed: this.page.waitForTimeout is not a function",
+      "details": {},
+      "timestamp": "2025-08-05T21:30:12.033Z"
+    },
+    {
+      "status": "PASS",
+      "message": "CSV file found (20666 bytes)",
+      "details": {},
+      "timestamp": "2025-08-05T21:30:12.033Z"
+    },
+    {
+      "status": "WARN",
+      "message": "Job name input not found, continuing without it",
+      "details": {},
+      "timestamp": "2025-08-05T21:30:12.035Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "No file input found",
+      "details": {},
+      "timestamp": "2025-08-05T21:30:12.040Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Job creation failed: button.textContent is not a function",
+      "details": {},
+      "timestamp": "2025-08-05T21:30:12.046Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Job monitoring failed: SyntaxError: Failed to execute 'querySelector' on 'Document': 'button[data-value=\"jobs\"], button:has-text(\"Jobs\")' is not a valid selector.",
+      "details": {},
+      "timestamp": "2025-08-05T21:30:12.049Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Generated posts verification failed: this.page.waitForTimeout is not a function",
+      "details": {},
+      "timestamp": "2025-08-05T21:30:25.817Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Post \"tokyo-ultimate-guide\" failed to render properly",
+      "details": {},
+      "timestamp": "2025-08-05T21:30:28.895Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Fatal error: this.page.waitForTimeout is not a function",
+      "details": {},
+      "timestamp": "2025-08-05T21:30:28.897Z"
+    }
+  ],
+  "timestamp": "2025-08-05T21:30:28.898Z"
+}

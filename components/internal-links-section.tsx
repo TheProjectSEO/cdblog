@@ -1,6 +1,7 @@
 'use client'
 
-import { ExternalLink, ArrowRight, MapPin, Globe } from 'lucide-react'
+import { ExternalLink, ArrowRight, MapPin, Globe, Sparkles, Clock, Star } from 'lucide-react'
+import { Card, CardContent } from "@/components/ui/card"
 import Link from 'next/link'
 
 interface InternalLink {
@@ -68,58 +69,93 @@ export function InternalLinksSection({ data }: InternalLinksSectionProps) {
   const relatedLinks = linksToShow.filter(link => link.category === 'related' || !link.category).slice(0, 4)
   const externalLinks = linksToShow.filter(link => link.category === 'external').slice(0, 4)
 
-  const CompactCard = ({ link, icon: Icon }: { link: InternalLink; icon: any }) => (
-    <Link 
-      href={link.url}
-      className="group block bg-white rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all duration-200 hover:-translate-y-0.5 h-20 flex items-center justify-center"
-    >
-      <div className="text-center">
-        <h3 className="font-medium text-gray-900 text-sm group-hover:text-blue-600 transition-colors duration-200 line-clamp-2 leading-tight">
-          {link.title}
-        </h3>
-      </div>
-    </Link>
-  )
+  const getRandomIcon = (index: number) => {
+    const icons = [MapPin, Clock, Star, Sparkles, ExternalLink, Globe]
+    return icons[index % icons.length]
+  }
+
+  const CompactCard = ({ link, index }: { link: InternalLink; index: number }) => {
+    const IconComponent = getRandomIcon(index)
+    return (
+      <Link href={link.url} className="block group">
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:bg-white group h-full">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 group-hover:from-purple-200 group-hover:to-indigo-200 transition-all duration-300 group-hover:scale-110">
+                  <IconComponent className="w-5 h-5 text-purple-600 group-hover:text-purple-700" />
+                </div>
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-gray-900 group-hover:bg-gradient-to-r group-hover:from-purple-700 group-hover:to-indigo-700 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 text-lg mb-2 leading-tight">
+                  {link.title}
+                </h3>
+                
+                <p className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors duration-300 leading-relaxed">
+                  {link.description}
+                </p>
+                
+                <div className="mt-4 flex items-center text-purple-600 group-hover:text-purple-700 transition-colors duration-300">
+                  <span className="text-sm font-semibold">Read more</span>
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    )
+  }
 
   return (
-    <section className="py-12 bg-gradient-to-br from-gray-50 to-blue-50/30">
-      <div className="container mx-auto px-6">
-        <div className="max-w-6xl mx-auto">
-          {/* Section Header */}
-          <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 font-sans">
-              More from our travel library
-            </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto font-light">
-              Discover more amazing content to help you plan the perfect trip.
-            </p>
-          </div>
+    <section className="relative bg-gradient-to-br from-purple-50 via-white to-indigo-50 rounded-3xl shadow-xl p-12 overflow-hidden mx-6">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-transparent to-indigo-600/5"></div>
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-purple-200/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-indigo-200/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+      
+      {/* Header */}
+      <div className="relative z-10 text-center mb-12">
+        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-full px-6 py-3 mb-6 hover:from-purple-200 hover:to-indigo-200 transition-all duration-300 cursor-default">
+          <Sparkles className="w-5 h-5 text-purple-600 animate-pulse" />
+          <span className="text-sm font-semibold text-purple-700">Travel Library</span>
+        </div>
+        
+        <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-900 via-purple-700 to-indigo-700 bg-clip-text text-transparent mb-6 leading-tight hover:from-purple-800 hover:via-purple-600 hover:to-indigo-600 transition-all duration-500 cursor-default">
+          More from our travel library
+        </h2>
+        
+        <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8">
+          Discover more amazing content to help you plan the perfect trip.
+        </p>
+      </div>
 
-          {/* Clean, simple grid layout like InternalLinking component */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-            {linksToShow.slice(0, 8).map((link, index) => (
-              <CompactCard key={`link-${index}`} link={link} icon={MapPin} />
-            ))}
-          </div>
+      {/* Links Grid */}
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        {linksToShow.slice(0, 6).map((link, index) => (
+          <CompactCard key={`link-${index}`} link={link} index={index} />
+        ))}
+      </div>
 
-          {/* Simplified Call to Action */}
-          <div className="mt-10 text-center">
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-sm">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Discover More Travel Inspiration
-              </h3>
-              <p className="text-gray-600 text-sm mb-4">
-                Browse our complete collection of destination guides and travel tips
-              </p>
-              <Link 
-                href="/blog"
-                className="inline-flex items-center bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200 shadow-sm"
-              >
-                Explore All Guides
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Link>
+      {/* CTA Section */}
+      <div className="relative z-10 text-center">
+        <div className="inline-block">
+          <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-purple-900 bg-clip-text text-transparent mb-4">
+            Discover More Travel Inspiration
+          </h3>
+          <p className="text-gray-600 mb-8">
+            Browse our complete collection of destination guides and travel tips
+          </p>
+          
+          <Link href="/blog" className="group">
+            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-4 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+              <span>Explore All Guides</span>
+              <div className="bg-white/20 rounded-full p-1 group-hover:bg-white/30 transition-colors duration-300">
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+              </div>
             </div>
-          </div>
+          </Link>
         </div>
       </div>
     </section>

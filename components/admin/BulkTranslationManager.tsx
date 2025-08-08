@@ -392,12 +392,66 @@ export function BulkTranslationManager({ onTranslationEdit }: BulkTranslationMan
 
   return (
     <div className="space-y-6">
-      <Card>
+      {/* Summary Statistics Dashboard - Moved to Top */}
+      {translations.length > 0 && (
+        <Card className="bg-white border border-black/8 shadow-sm hover:shadow-lg transition-all duration-200">
+          <CardHeader className="bg-gradient-to-r from-[#5d2de6]/5 to-[#fb3aa2]/5 border-b border-black/5">
+            <CardTitle className="text-lg font-medium text-[#0e0e0e] flex items-center gap-2">
+              <div className="w-6 h-6 bg-[#5d2de6]/15 rounded-md flex items-center justify-center">
+                <Languages className="w-4 h-4 text-[#5d2de6]" />
+              </div>
+              Translation Dashboard
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-[#05381A]/15 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle className="h-8 w-8 text-[#05381A]" />
+                </div>
+                <div className="text-3xl font-bold text-[#05381A] mb-1">
+                  {translations.filter(t => t.translation_status === 'completed').length}
+                </div>
+                <div className="text-sm text-[#262626]/70 font-medium">Completed</div>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-[#5d2de6]/15 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <Loader2 className="h-8 w-8 text-[#5d2de6]" />
+                </div>
+                <div className="text-3xl font-bold text-[#5d2de6] mb-1">
+                  {translations.filter(t => t.translation_status === 'translating').length}
+                </div>
+                <div className="text-sm text-[#262626]/70 font-medium">In Progress</div>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <AlertTriangle className="h-8 w-8 text-red-600" />
+                </div>
+                <div className="text-3xl font-bold text-red-600 mb-1">
+                  {translations.filter(t => t.translation_status === 'failed').length}
+                </div>
+                <div className="text-sm text-[#262626]/70 font-medium">Failed</div>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-[#fb3aa2]/15 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <Globe className="h-8 w-8 text-[#fb3aa2]" />
+                </div>
+                <div className="text-3xl font-bold text-[#fb3aa2] mb-1">
+                  {[...new Set(translations.map(t => t.language_code))].length}
+                </div>
+                <div className="text-sm text-[#262626]/70 font-medium">Languages</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="bg-white border border-black/8 shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Languages className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-[#0e0e0e]">
+            <Languages className="h-5 w-5 text-[#5d2de6]" />
             Bulk Translation Management
-            <Badge variant="secondary">{translations.length} total</Badge>
+            <Badge className="bg-[#5d2de6]/15 text-[#5d2de6] border-[#5d2de6]/25">{translations.length} total</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">

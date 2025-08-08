@@ -1,10 +1,11 @@
 'use client'
 
+import React from 'react'
 import { HeroSection } from './sections/hero-section'
 import { AuthorBlock } from './author-block'
 import { RichTextEditor } from './rich-text-editor'
 import { FAQSection } from './faq-section'
-import { InternalLinking } from './internal-linking'
+// Removed old InternalLinking - now using InternalLinksSection
 import { ThingsToDoCards } from './things-to-do-cards'
 import { HotelCarousel } from './hotel-carousel'
 import { LocalTips } from './local-tips'
@@ -304,10 +305,13 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
     sectionsCount: sections.length,
     postTitle: post?.title,
     postExcerpt: post?.excerpt,
-    sectionsPreview: sections.map(s => ({
+    sectionsPreview: sections.map((s, idx) => ({
+      index: idx,
       id: s.id,
       position: s.position,
       template: s.template?.component_name,
+      template_id: s.template_id,
+      is_active: s.is_active,
       hasData: !!s.data,
       dataKeys: Object.keys(s.data || {})
     }))
@@ -376,15 +380,31 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
       case 'AuthorBlock':
       case 'author-section':
       case 'author-block':
-        return <AuthorBlock key={section.id} />
+        return (
+          <AuthorBlock 
+            key={section.id}
+            name={sectionData.name}
+            title={sectionData.title}
+            bio={sectionData.bio}
+            avatar={sectionData.avatar}
+            countriesExplored={sectionData.countriesExplored}
+            expertSince={sectionData.expertSince}
+            followers={sectionData.followers}
+            badges={sectionData.badges}
+            publishedDate={post?.published_date}
+            updatedDate={post?.updated_date}
+          />
+        )
       
       // Starter Pack Section
       case 'StarterPackSection':
       case 'starter-pack-section':
       case 'overview-intro':
-        // Check if this is translated content with direct starter pack data
-        if (sectionData.highlights && sectionData.destination) {
-          console.log('🎯 Rendering StarterPackSection with direct translated data:', sectionData)
+        console.log('🎯 Rendering StarterPackSection with data:', sectionData)
+        
+        // PRIORITY 1: Use admin interface data directly if available
+        if (sectionData.highlights || sectionData.badge || sectionData.title) {
+          console.log('Using admin interface data directly')
           return (
             <StarterPackSection 
               key={section.id}
@@ -393,7 +413,18 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
           )
         }
         
-        // Check if we have database starter pack data in the section data
+        // PRIORITY 2: Check if this is translated content with direct starter pack data
+        if (sectionData.destination) {
+          console.log('Using translated starter pack data:', sectionData)
+          return (
+            <StarterPackSection 
+              key={section.id}
+              data={sectionData}
+            />
+          )
+        }
+        
+        // PRIORITY 3: Check if we have database starter pack data in the section data
         if (sectionData.starterPackData) {
           // Use database data if available - convert to StarterPackSection format
           const starterPackData = sectionData.starterPackData
@@ -804,16 +835,13 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
             ? `Why ${destination} ${destination.toLowerCase().includes('region') || destination.toLowerCase().includes('coast') ? 'Hits' : 'Hit'} Different`
             : 'Why This Destination Hits Different')
 
-        // Convert the hardcoded content to StarterPackSection format
+        // Convert the hardcoded content to new StarterPackSection format
         const starterPackData = {
-          destination: destination,
-          bestTime: 'Best season to visit',
-          duration: '5-7 days recommended', 
-          budget: '€100-200 per day',
-          currency: 'EUR',
-          language: 'Local language',
-          timezone: 'Local timezone',
-          highlights: customHighlights ? customHighlights.map((h: any) => h.title + ': ' + h.value) : []
+          badge: customBadge || `🏔️ Your ${destination} starter pack`,
+          title: `${destination} Travel Essentials`,
+          description: 'Everything you need to know at a glance',
+          highlights: customHighlights || [],
+          features: customSections || []
         }
 
         return (
@@ -907,6 +935,15 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
           hotelDestination = 'Naples & Amalfi Coast'
         }
         
+        console.log('🏨 Rendering HotelCarousel with data:', {
+          title: sectionData.title,
+          description: sectionData.description,
+          destination: hotelDestination,
+          hotels: sectionData.hotels?.length || 0,
+          hotelsData: sectionData.hotels,
+          allSectionData: Object.keys(sectionData || {})
+        })
+        
         return (
           <HotelCarousel 
             key={section.id}
@@ -952,24 +989,28 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
       case 'internal-links-section':
         return <InternalLinksSection key={section.id} data={sectionData} />
 
-      // Internal Linking (legacy)
+      // Internal Linking (legacy - redirected to new component)
       case 'InternalLinking':
       case 'internal-linking':
-        // If autoGenerate is true or no links provided, use default links
-        let relatedLinks = sectionData.links || []
+        // Convert legacy format to new format and use InternalLinksSection
+        let legacyLinks = sectionData.links || []
         
-        // Ensure links have proper IDs and structure
-        if (relatedLinks.length === 0 || sectionData.autoGenerate) {
-          relatedLinks = getDefaultInternalLinks(post?.title)
-        } else {
-          // Ensure each link has an ID for React keys
-          relatedLinks = relatedLinks.map((link: any, index: number) => ({
-            ...link,
-            id: link.id || `link-${index}-${section.id}`
+        if (legacyLinks.length === 0 || sectionData.autoGenerate) {
+          legacyLinks = getDefaultInternalLinks(post?.title)
+        }
+        
+        // Convert to new format
+        const convertedData = {
+          title: sectionData.title || "More from our travel library",
+          links: legacyLinks.map((link: any) => ({
+            title: link.title,
+            description: link.description,
+            url: link.url,
+            category: 'related'
           }))
         }
         
-        return <InternalLinking key={section.id} relatedLinks={relatedLinks} />
+        return <InternalLinksSection key={section.id} data={convertedData} />
       
       // FAQ Section
       case 'FAQSection':
@@ -1042,17 +1083,39 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
   let firstContentSectionIndex = -1
   for (let i = 0; i < sortedSections.length; i++) {
     const section = sortedSections[i]
-    const isHeroSection = section.template?.component_name === 'HeroSection' || section.template?.component_name === 'hero-section'
-    if (!isHeroSection) {
+    const template = getTemplateInfo(section.template_id) || section.template
+    const isHeroSection = template?.component_name === 'HeroSection' || 
+                         template?.component_name === 'hero-section' ||
+                         template?.name === 'hero-section' ||
+                         section.template_id === '6f579a71-463c-43b4-b203-c2cb46c80d47'
+    
+    if (!isHeroSection && section.is_active) {
       firstContentSectionIndex = i
       break
     }
   }
 
+  console.log('🎯 First content section calculated:', {
+    firstContentSectionIndex,
+    totalSections: sortedSections.length,
+    foundSection: firstContentSectionIndex >= 0 ? {
+      id: sortedSections[firstContentSectionIndex]?.id,
+      template_id: sortedSections[firstContentSectionIndex]?.template_id,
+      template_name: getTemplateInfo(sortedSections[firstContentSectionIndex]?.template_id)?.component_name
+    } : null
+  })
+
   return (
     <div className="min-h-screen bg-gray-50">
       {sortedSections.map((section, index) => {
         const sectionType = section.template?.component_name || section.template_id
+        
+        console.log(`🔄 Processing section ${index}:`, {
+          id: section.id,
+          sectionType,
+          is_active: section.is_active,
+          isFirstContent: index === firstContentSectionIndex
+        })
         
         // Identify why-different sections
         const isWhySection = sectionType === 'WhyDestinationDifferent' || 
@@ -1062,6 +1125,7 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
         
         // Skip duplicate why-different sections (all variations)
         if (isWhySection && renderedSectionTypes.has('why-different')) {
+          console.log(`⏭️ Skipping duplicate why-different section ${index}`)
           return null
         }
         
@@ -1074,11 +1138,18 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
         
         // Skip if section was filtered out
         if (!renderedSection) {
+          console.log(`⏭️ Skipping section ${index} - no rendered content`)
           return null
         }
         
         // Hero section should be full width without any containers
-        if (section.template?.component_name === 'HeroSection' || section.template?.component_name === 'hero-section') {
+        const template = getTemplateInfo(section.template_id) || section.template
+        const isHeroSection = template?.component_name === 'HeroSection' || 
+                             template?.component_name === 'hero-section' ||
+                             template?.name === 'hero-section' ||
+                             section.template_id === '6f579a71-463c-43b4-b203-c2cb46c80d47'
+        
+        if (isHeroSection) {
           return (
             <div key={section.id} className="w-full">
               {renderedSection}
@@ -1091,15 +1162,26 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
         
         if (isFirstContentSection) {
           return (
-            <div key={section.id} className="container mx-auto px-4 py-8 relative -mt-16 z-30 bg-white rounded-t-3xl shadow-xl">
-              {renderedSection}
+            <div key={section.id} className="relative z-30">
+              <div className="container mx-auto px-4 relative -mt-16 pt-4 pb-8">
+                <div className="bg-white rounded-t-[3rem] shadow-2xl overflow-hidden">
+                  {/* Full content - no height restriction, no fade effect */}
+                  <div className="px-8 pt-8 pb-8">
+                    {renderedSection}
+                  </div>
+                </div>
+              </div>
             </div>
           )
         }
         
+        // All other sections render normally
+        console.log(`✅ Rendering normal section ${index}:`, section.template?.component_name)
         return (
           <div key={section.id} className="container mx-auto px-4 py-8">
-            {renderedSection}
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              {renderedSection}
+            </div>
           </div>
         )
       })}

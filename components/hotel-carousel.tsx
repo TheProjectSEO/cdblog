@@ -39,6 +39,15 @@ export function HotelCarousel({
   hotels: providedHotels
 }: HotelCarouselProps) {
   
+  // Debug: Log what data we're receiving
+  console.log('HotelCarousel received data:', {
+    title,
+    description,
+    destination,
+    providedHotels: providedHotels?.length || 0,
+    firstHotel: providedHotels?.[0]
+  })
+  
   // Generate hotels based on destination
   const getHotelsForDestination = (dest: string) => {
     if (dest.toLowerCase().includes('rotterdam')) {
@@ -621,17 +630,20 @@ export function HotelCarousel({
 
   // Use provided hotels data if available, otherwise fallback to generated data
   const hotels = providedHotels && providedHotels.length > 0 
-    ? providedHotels.map(hotel => ({
-        id: Math.random(), // Add ID for React keys
-        name: hotel.name,
-        description: hotel.description || "Beautiful accommodation",
-        image: hotel.image,
-        rating: hotel.rating,
-        reviews: hotel.reviews || 1000,
-        price: hotel.price || (hotel.pricePerNight ? `From €${hotel.pricePerNight}` : 'From €200'),
-        amenities: hotel.amenities || [],
-        location: hotel.location || "City Center"
-      }))
+    ? providedHotels.map(hotel => {
+        console.log('Processing hotel from admin:', hotel)
+        return {
+          id: Math.random(), // Add ID for React keys
+          name: hotel.name,
+          description: hotel.description || "Beautiful accommodation",
+          image: hotel.image,
+          rating: hotel.rating,
+          reviews: hotel.reviews || 1000,
+          price: hotel.pricePerNight ? `From €${hotel.pricePerNight}` : 'From €200',
+          amenities: hotel.amenities || [],
+          location: hotel.location || "City Center"
+        }
+      })
     : getHotelsForDestination(destination)
 
   return (

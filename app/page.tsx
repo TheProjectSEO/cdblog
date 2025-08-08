@@ -25,6 +25,7 @@ async function getHomepageSettings() {
       hero_badge: settings.hero_badge || { text: "✨ Your AI-powered travel companion" },
       hero_background: settings.hero_background || { url: "/placeholder.svg?height=800&width=1200", alt: "Beautiful travel destinations" },
       logo_url: settings.logo_url || { url: "/cuddlynest-logo.png", alt: "CuddlyNest" },
+      blog_logo_url: settings.blog_logo_url || { url: "/cuddlynest-logo-pink.png", alt: "CuddlyNest" },
       stats: settings.stats || { guides: "1565+", destinations: "200+", for_text: "For every traveler" },
       featured_posts: settings.featured_posts || { post_ids: [] }
     }
@@ -37,6 +38,7 @@ async function getHomepageSettings() {
       hero_badge: { text: "✨ Your AI-powered travel companion" },
       hero_background: { url: "/placeholder.svg?height=800&width=1200", alt: "Beautiful travel destinations" },
       logo_url: { url: "/cuddlynest-logo.png", alt: "CuddlyNest" },
+      blog_logo_url: { url: "/cuddlynest-logo-pink.png", alt: "CuddlyNest" },
       stats: { guides: "1565+", destinations: "200+", for_text: "For every traveler" },
       featured_posts: { post_ids: [] }
     }

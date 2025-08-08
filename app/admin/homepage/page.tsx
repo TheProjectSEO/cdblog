@@ -31,6 +31,7 @@ interface HomepageSettings {
   hero_badge: { text: string }
   hero_background: { url: string; alt: string }
   logo_url: { url: string; alt: string }
+  blog_logo_url: { url: string; alt: string }
   stats: { guides: string; destinations: string; for_text: string }
   featured_posts: { post_ids: string[] }
 }
@@ -312,41 +313,96 @@ export default function HomepageAdmin() {
         </Card>
 
         {/* Logo & Branding */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ImageIcon className="h-5 w-5" />
               Logo & Branding
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Logo URL</Label>
-              <Input
-                value={settings.logo_url.url}
-                onChange={(e) => updateSetting('logo_url', { ...settings.logo_url, url: e.target.value })}
-                placeholder="/cuddlynest-logo.png"
-              />
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Homepage Logo (Dark Backgrounds) */}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-semibold">Homepage Logo (Dark Backgrounds)</Label>
+                  <p className="text-sm text-gray-600 mb-3">This logo appears on the homepage hero section with dark backgrounds. Usually white or light colored.</p>
+                </div>
+                <div>
+                  <Label>Logo URL</Label>
+                  <Input
+                    value={settings.logo_url.url}
+                    onChange={(e) => updateSetting('logo_url', { ...settings.logo_url, url: e.target.value })}
+                    placeholder="/cuddlynest-logo-white.png"
+                  />
+                </div>
+                <div>
+                  <Label>Logo Alt Text</Label>
+                  <Input
+                    value={settings.logo_url.alt}
+                    onChange={(e) => updateSetting('logo_url', { ...settings.logo_url, alt: e.target.value })}
+                    placeholder="CuddlyNest"
+                  />
+                </div>
+                <div className="p-4 bg-gray-900 rounded-lg">
+                  <p className="text-sm text-white mb-2">Preview on dark background:</p>
+                  <img 
+                    src={settings.logo_url.url} 
+                    alt={settings.logo_url.alt}
+                    className="h-12 object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.src = '/placeholder.svg?height=48&width=120&text=White+Logo'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Blog Logo (Light Backgrounds) */}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-semibold">Blog Logo (Light Backgrounds)</Label>
+                  <p className="text-sm text-gray-600 mb-3">This logo appears on blog pages and other light backgrounds. Usually dark colored or pink.</p>
+                </div>
+                <div>
+                  <Label>Blog Logo URL</Label>
+                  <Input
+                    value={settings.blog_logo_url?.url || ''}
+                    onChange={(e) => updateSetting('blog_logo_url', { ...settings.blog_logo_url, url: e.target.value })}
+                    placeholder="/cuddlynest-logo-pink.png"
+                  />
+                </div>
+                <div>
+                  <Label>Blog Logo Alt Text</Label>
+                  <Input
+                    value={settings.blog_logo_url?.alt || ''}
+                    onChange={(e) => updateSetting('blog_logo_url', { ...settings.blog_logo_url, alt: e.target.value })}
+                    placeholder="CuddlyNest"
+                  />
+                </div>
+                <div className="p-4 bg-white border-2 border-gray-200 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">Preview on light background:</p>
+                  <img 
+                    src={settings.blog_logo_url?.url || settings.logo_url.url} 
+                    alt={settings.blog_logo_url?.alt || settings.logo_url.alt}
+                    className="h-12 object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.src = '/placeholder.svg?height=48&width=120&text=Pink+Logo'
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <Label>Logo Alt Text</Label>
-              <Input
-                value={settings.logo_url.alt}
-                onChange={(e) => updateSetting('logo_url', { ...settings.logo_url, alt: e.target.value })}
-                placeholder="CuddlyNest"
-              />
-            </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-2">Preview:</p>
-              <img 
-                src={settings.logo_url.url} 
-                alt={settings.logo_url.alt}
-                className="h-12 object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.src = '/placeholder.svg?height=48&width=120&text=Logo'
-                }}
-              />
+
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-semibold text-blue-900 mb-2">💡 Logo Usage Tips</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• <strong>Homepage Logo:</strong> Use white/light colored logos for the hero section with dark backgrounds</li>
+                <li>• <strong>Blog Logo:</strong> Use dark/colored logos for blog pages with light backgrounds</li>
+                <li>• Both logos should be the same design but different colors for optimal contrast</li>
+                <li>• Recommended formats: PNG with transparent background, SVG preferred</li>
+              </ul>
             </div>
           </CardContent>
         </Card>

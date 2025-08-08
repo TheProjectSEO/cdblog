@@ -1,8 +1,9 @@
+'use client'
+
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, Users, Star, Sparkles, ArrowLeft, User } from "lucide-react"
 import Link from "next/link"
-import { AuthorScrollBadge } from "@/components/author-scroll-badge"
 
 interface HeroSectionProps {
   title?: string
@@ -44,6 +45,64 @@ export function HeroSection({
   const finalTitle = data?.title || title || post?.title || "Amazing Destination"
   const finalDescription = data?.subtitle || description || post?.excerpt || "Discover incredible experiences"
   const finalLocation = data?.location || location || "Destination"
+  
+  // Enhanced customization options
+  const badges = data?.badges || {
+    main: { text: '🏔️ Your travel adventure starts here', show: true },
+    location: { show: true },
+    calendar: { text: 'Perfect year-round', show: true },
+    users: { text: 'For every traveler', show: true },
+    rating: { text: '4.9/5 from travelers', show: true },
+    author: { show: true }
+  }
+  
+  const textSizes = data?.textSizes || {
+    title: 'responsive',
+    subtitle: 'responsive',
+    badges: 'sm'
+  }
+  
+  const ctaButtons = data?.ctaButtons || {
+    primary: { text: 'Start planning your trip', url: 'https://cuddlynest.com', show: true }
+  }
+  
+  const bottomText = data?.bottomText || {
+    text: '🎁 Free to use • No signup required • Personalized just for you',
+    show: true
+  }
+  
+  // Helper function to get text size classes
+  const getTextSizeClass = (sizeType: string, element: 'title' | 'subtitle' | 'badges') => {
+    const size = textSizes[element] || 'responsive'
+    
+    switch (element) {
+      case 'title':
+        switch (size) {
+          case 'small': return 'text-3xl sm:text-4xl md:text-5xl'
+          case 'medium': return 'text-4xl sm:text-5xl md:text-6xl'
+          case 'large': return 'text-5xl sm:text-6xl md:text-7xl'
+          case 'xl': return 'text-6xl sm:text-7xl md:text-8xl'
+          default: return 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl' // responsive
+        }
+      case 'subtitle':
+        switch (size) {
+          case 'small': return 'text-base sm:text-lg'
+          case 'medium': return 'text-lg sm:text-xl'
+          case 'large': return 'text-xl sm:text-2xl'
+          case 'xl': return 'text-2xl sm:text-3xl'
+          default: return 'text-lg sm:text-xl md:text-2xl' // responsive
+        }
+      case 'badges':
+        switch (size) {
+          case 'xs': return 'text-xs'
+          case 'sm': return 'text-sm'
+          case 'base': return 'text-base'
+          case 'lg': return 'text-lg'
+          case 'xl': return 'text-xl'
+          default: return 'text-sm'
+        }
+    }
+  }
   
   // Get destination-specific hero image - prioritize database image first
   const getHeroImageForDestination = () => {
@@ -91,8 +150,12 @@ export function HeroSection({
   }
   
   const finalImage = getHeroImageForDestination()
-  const badge = data?.badge || (finalTitle.includes('Italienische') ? "🏔️ Ihr Reiseabenteuer beginnt hier" : "🏔️ Your travel adventure starts here")
-  const rating = data?.rating || (finalTitle.includes('Italienische') ? "4,9/5 von Reisenden" : "4.9/5 from travelers")
+  
+  // Legacy fallback support for old data structure
+  const mainBadgeText = badges?.main?.text || data?.badge || (finalTitle.includes('Italienische') ? "🏔️ Ihr Reiseabenteuer beginnt hier" : "🏔️ Your travel adventure starts here")
+  const ratingText = badges?.rating?.text || data?.rating || (finalTitle.includes('Italienische') ? "4,9/5 von Reisenden" : "4.9/5 from travelers")
+  const calendarText = badges?.calendar?.text || (finalTitle.includes('Italienische') ? "Perfekt das ganze Jahr" : "Perfect year-round")
+  const usersText = badges?.users?.text || (finalTitle.includes('Italienische') ? "Für jeden Reisenden" : "For every traveler")
   const authorName = post?.author?.display_name || "CuddlyNest Travel Team"
 
   return (
@@ -100,9 +163,9 @@ export function HeroSection({
       className="relative overflow-hidden"
       style={{
         width: '100vw',
-        height: '100vh',
+        height: '85vh',
         minHeight: '600px',
-        maxHeight: '800px',
+        maxHeight: '750px',
         position: 'relative',
         left: '50%',
         right: '50%',
@@ -129,6 +192,7 @@ export function HeroSection({
       </div>
 
       {/* Back to Blog Button - Top Left */}
+      {/* 
       <div className="absolute top-6 left-6 z-30">
         <Link 
           href="/blog"
@@ -138,96 +202,110 @@ export function HeroSection({
           Back to Blog
         </Link>
       </div>
+      */}
 
       {/* Main content container - centered with max-width constraint */}
       <div className="relative z-20 h-full flex items-center justify-center">
         <div className="w-full max-w-7xl mx-auto px-6 lg:px-8">
           <div className="max-w-4xl text-white">
-            {/* Main badge */}
-            <div className="mb-6">
-              <Badge className="bg-brand-pink/90 backdrop-blur-md text-brand-deep-purple border-0 text-sm font-medium px-4 py-2 shadow-lg cursor-default hover:bg-brand-pink/90 hover:text-brand-deep-purple">
-                {badge}
-              </Badge>
-            </div>
+            {/* Main badge - conditional rendering */}
+            {badges?.main?.show && (
+              <div className="mb-6">
+                <Badge className={`bg-brand-pink/90 backdrop-blur-md text-brand-deep-purple border-0 font-medium px-4 py-2 shadow-lg cursor-default hover:bg-brand-pink/90 hover:text-brand-deep-purple ${getTextSizeClass('', 'badges')}`}>
+                  {mainBadgeText}
+                </Badge>
+              </div>
+            )}
 
-            {/* Hero Title - responsive sizing */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight font-sans">
+            {/* Hero Title - dynamic sizing */}
+            <h1 className={`${getTextSizeClass('', 'title')} font-bold mb-6 leading-tight font-sans`}>
               {finalTitle.split(' ').slice(0, -2).join(' ')}
               <span className="bg-gradient-to-r from-brand-pink to-white bg-clip-text text-transparent">
                 {' ' + finalTitle.split(' ').slice(-2).join(' ')}
               </span>
             </h1>
 
-            {/* Hero Description */}
-            <p className="text-lg sm:text-xl md:text-2xl mb-8 text-gray-200 max-w-3xl font-light leading-relaxed">
+            {/* Hero Description - dynamic sizing */}
+            <p className={`${getTextSizeClass('', 'subtitle')} mb-8 text-gray-200 max-w-3xl font-light leading-relaxed`}>
               {finalDescription}
             </p>
 
-            {/* Info badges - responsive stack */}
-            <div className="flex flex-wrap items-center gap-3 mb-8">
-              <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg">
-                <MapPin className="w-4 h-4 text-white" />
-                <span className="text-white text-sm font-medium">{finalLocation}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg">
-                <Calendar className="w-4 h-4 text-white" />
-                <span className="text-white text-sm font-medium">{finalTitle.includes('Italienische') ? "Perfekt das ganze Jahr" : "Perfect year-round"}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg">
-                <Users className="w-4 h-4 text-white" />
-                <span className="text-white text-sm font-medium">{finalTitle.includes('Italienische') ? "Für jeden Reisenden" : "For every traveler"}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg">
-                <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                <span className="text-white text-sm font-medium">{rating}</span>
-              </div>
+            
+            {/* Badges container - aligned with CTA section */}
+            <div className={`flex items-center gap-2 sm:gap-3 mb-8 overflow-x-auto scrollbar-hide ${getTextSizeClass('', 'badges')}`} style={{ scrollBehavior: 'smooth' }}>
+              {badges?.location?.show && (
+                <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg flex-shrink-0">
+                  <MapPin className="w-4 h-4 text-white" />
+                  <span className="text-white font-medium whitespace-nowrap">{finalLocation}</span>
+                </div>
+              )}
+              {badges?.calendar?.show && (
+                <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg flex-shrink-0">
+                  <Calendar className="w-4 h-4 text-white" />
+                  <span className="text-white font-medium whitespace-nowrap">{calendarText}</span>
+                </div>
+              )}
+              {badges?.users?.show && (
+                <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg flex-shrink-0">
+                  <Users className="w-4 h-4 text-white" />
+                  <span className="text-white font-medium whitespace-nowrap">{usersText}</span>
+                </div>
+              )}
+              {badges?.rating?.show && (
+                <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg flex-shrink-0">
+                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                  <span className="text-white font-medium whitespace-nowrap">{ratingText}</span>
+                </div>
+              )}
+              {/* Author badge - moved to top row and made clickable */}
+              {badges?.author?.show && (
+                <button
+                  onClick={() => {
+                    const authorSection = document.getElementById('author-section');
+                    if (authorSection) {
+                      authorSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  className={`flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg hover:bg-white/25 transition-all duration-200 cursor-pointer transform hover:scale-105 flex-shrink-0`}
+                >
+                  <User className="w-4 h-4 text-white" />
+                  <span className="text-white font-medium whitespace-nowrap">{authorName}</span>
+                </button>
+              )}
             </div>
 
-            {/* CTA Buttons - All buttons in one horizontal layout */}
+            {/* CTA Buttons - only primary button */}
             <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
-              <Link 
-                href={data?.ctaPrimary?.url || 'https://cuddlynest.com'} 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <Button
-                  size="lg"
-                  className="bg-brand-purple hover:bg-brand-deep-purple text-white text-lg px-8 py-4 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto"
+              {ctaButtons?.primary?.show && (
+                <Link 
+                  href={ctaButtons.primary.url || 'https://cuddlynest.com'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
                 >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  {data?.ctaPrimary?.text || (finalTitle.includes('Italienische') ? "Reiseplanung starten" : "Start planning your trip")}
-                </Button>
-              </Link>
-              <Link href={data?.ctaSecondary?.url || "/blog"}>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-2 border-white text-white hover:bg-white hover:text-brand-deep-purple text-lg px-8 py-4 rounded-full bg-transparent font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto"
-                >
-                  {data?.ctaSecondary?.text || (finalTitle.includes('Italienische') ? "Reiseführer erkunden" : "Explore guide")}
-                </Button>
-              </Link>
-              
-              {/* Author badges inline with buttons */}
-              <Badge className="bg-white/15 backdrop-blur-md text-white border-white/20 hover:bg-white/25 transition-colors px-4 py-2 shadow-lg">
-                <User className="w-4 h-4 mr-2" />
-                {authorName}
-              </Badge>
-              <AuthorScrollBadge />
+                  <Button
+                    size="lg"
+                    className="bg-brand-purple hover:bg-brand-deep-purple text-white text-lg px-8 py-4 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto"
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    {ctaButtons.primary.text}
+                  </Button>
+                </Link>
+              )}
             </div>
 
-            {/* Bottom info text */}
-            <div className="mt-8">
-              <p className="text-sm text-white/80 bg-black/20 backdrop-blur-md rounded-full px-4 py-2 inline-block border border-white/10">
-                🎁 Free to use • No signup required • Personalized just for you
-              </p>
-            </div>
+            {/* Bottom info text - conditional rendering */}
+            {bottomText?.show && (
+              <div className="mt-8">
+                <p className="text-sm text-white/80 bg-black/20 backdrop-blur-md rounded-full px-4 py-2 inline-block border border-white/10">
+                  {bottomText.text}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Scroll indicator at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10"></div>
+      {/* Scroll indicator removed to eliminate pink line */}
     </section>
   )
 }

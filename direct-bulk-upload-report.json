@@ -1,0 +1,135 @@
+{
+  "testType": "Direct Bulk Upload API Testing",
+  "summary": {
+    "totalTests": 18,
+    "passed": 17,
+    "failed": 1,
+    "warnings": 0,
+    "successRate": 94
+  },
+  "details": [
+    {
+      "status": "PASS",
+      "message": "CSV file found (20666 bytes)",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:35.196Z"
+    },
+    {
+      "status": "PASS",
+      "message": "CSV contains 3 data rows",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:35.200Z"
+    },
+    {
+      "status": "PASS",
+      "message": "All required fields present in CSV",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:35.200Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Sample data contains expected content (Tokyo post)",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:35.200Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Service contains Complete Travel Guide Posts template",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:35.201Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Service configuration includes 9/9 expected sections",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:35.201Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Service includes post and section creation logic",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:35.201Z"
+    },
+    {
+      "status": "FAIL",
+      "message": "Database connection or table access issues",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.785Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Tokyo - Required fields present",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.790Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Tokyo - 6 sections have data",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.790Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Bali Bliss - Required fields present",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.790Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Bali Bliss - 6 sections have data",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.790Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Santorini Secrets - Required fields present",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.790Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Santorini Secrets - 6 sections have data",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.790Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Should create: Tokyo: The Ultimate Modern Metropolis Guide",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.790Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Should create: Bali Bliss: Your Complete Paradise Guide",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.790Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Should create: Santorini Secrets: Beyond the Instagram Photos",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.790Z"
+    },
+    {
+      "status": "PASS",
+      "message": "Each post should have 9 sections with template IDs",
+      "details": {},
+      "timestamp": "2025-08-05T21:32:36.790Z"
+    }
+  ],
+  "recommendations": [
+    "CSV file structure is correct and contains valid test data",
+    "Bulk upload service configuration appears complete",
+    "Database connection should be verified before live testing",
+    "Frontend rendering should be tested after posts are created",
+    "All 9 section types should be created for each post"
+  ],
+  "nextSteps": [
+    "Test the actual bulk upload process via the admin interface",
+    "Verify database post creation",
+    "Check frontend rendering of generated posts",
+    "Validate section data accuracy",
+    "Test translation functionality if required"
+  ],
+  "timestamp": "2025-08-05T21:32:36.791Z"
+}

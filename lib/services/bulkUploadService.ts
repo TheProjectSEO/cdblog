@@ -653,16 +653,11 @@ export class BulkUploadService {
         slug = await this.ensureUniqueSlug(slug)
       }
 
-      // Find existing author or use default
-      let authorId = '6ab96e87-00db-44bd-ac5f-34a3dd8d457c' // default
-      const { data: authors } = await supabase
-        .from('authors')
-        .select('id')
-        .limit(1)
+      // Use existing author ID from the database
+      let authorId = '5b91d6bf-49da-473a-a106-97678a9dc970' // existing author from database
       
-      if (authors && authors.length > 0) {
-        authorId = authors[0].id
-      }
+      // If author data is provided in CSV, could potentially create/find author
+      // For now, using the existing author ID found in the database
 
       // Create the post
       const { data: post, error: postError } = await supabase
@@ -719,193 +714,202 @@ export class BulkUploadService {
 
   private async createPostSections(postId: string, rowData: any): Promise<void> {
     const sections = []
-    let position = 0
 
-    // Hero section
-    if (rowData.hero_enabled === true || rowData.hero_title || rowData.hero_subtitle || rowData.hero_background) {
-      sections.push({
-        post_id: postId,
-        template_id: '6f579a71-463c-43b4-b203-c2cb46c80d47', // Hero section
-        position: position++,
-        data: {
-          title: rowData.hero_title || rowData.title,
-          subtitle: rowData.hero_subtitle || rowData.excerpt,
-          backgroundImage: rowData.hero_background || rowData.featured_image,
-          badge: rowData.hero_badge || 'Featured Destination',
-          location: rowData.hero_location || ''
-        },
-        is_active: true
-      })
-    }
+    // Always create all 9 sections in the correct order, matching our new structure
+    
+    // 1. Hero Section (Position 0)
+    sections.push({
+      post_id: postId,
+      template_id: '6f579a71-463c-43b4-b203-c2cb46c80d47',
+      position: 0,
+      is_active: true,
+      data: {
+        title: rowData.hero_title || rowData.title || 'Discover Amazing Travel Destination',
+        subtitle: rowData.hero_subtitle || rowData.excerpt || 'Explore culture, cuisine, and unforgettable experiences',
+        backgroundImage: rowData.hero_background || rowData.featured_image || 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
+        location: rowData.hero_location || rowData.destination || 'Amazing Destination'
+      }
+    })
 
-    // Author section
-    if (rowData.author_enabled === true || rowData.author_name || rowData.author_bio || rowData.author_avatar) {
-      sections.push({
-        post_id: postId,
-        template_id: '58e1b71c-600b-48d3-a956-f9b27bc368b2', // Author section
-        position: position++,
-        data: {
-          name: rowData.author_name || 'CuddlyNest Team',
-          bio: rowData.author_bio || 'Travel experts helping you discover amazing destinations',
-          avatar: rowData.author_avatar || '/placeholder.svg'
-        },
-        is_active: true
-      })
-    }
+    // 2. Main Content (HTML) - Position 1
+    sections.push({
+      post_id: postId,
+      template_id: 'e30d9e40-eb3a-41d3-aeac-413cfca52fe0',
+      position: 1,
+      is_active: true,
+      data: {
+        content: rowData.content || rowData.main_content || '<div class="prose max-w-none"><p>Welcome to our comprehensive travel guide! This section contains the main content for your destination.</p><p>Discover everything you need to know about this amazing place, from its rich history to modern attractions.</p><h3>Getting Started</h3><p>This guide will help you navigate the best experiences this destination has to offer.</p></div>'
+      }
+    })
 
-    // Starter Pack section
-    if (rowData.starter_pack_enabled === true || rowData.starter_pack_title || rowData.starter_pack_description) {
-      sections.push({
-        post_id: postId,
-        template_id: 'b87245be-1b68-47d4-83a6-fac582a0847f', // Starter Pack section
-        position: position++,
-        data: {
-          badge: rowData.starter_pack_badge || "Your destination starter pack",
-          title: rowData.starter_pack_title || "Why this place hits different",
-          description: rowData.starter_pack_description || "This destination isn't just a place - it's a feeling...",
-          items: []
-        },
-        is_active: true
-      })
-    }
+    // 3. Rich Text Editor - Position 2
+    sections.push({
+      post_id: postId,
+      template_id: '550e8400-e29b-41d4-a716-446655440000',
+      position: 2,
+      is_active: true,
+      data: {
+        content: rowData.rich_content || '<div class="prose max-w-none"><h2>Planning Your Adventure</h2><p>Every journey begins with proper planning. Here\'s our insider guide to making the most of your visit.</p><blockquote class="border-l-4 border-blue-500 pl-4 italic"><p>"Travel is the only thing you buy that makes you richer" - Let us show you how!</p></blockquote><h3>Best Time to Visit</h3><ul><li><strong>Peak Season:</strong> Perfect weather, vibrant atmosphere</li><li><strong>Shoulder Season:</strong> Fewer crowds, better prices</li><li><strong>Off-Season:</strong> Authentic local experience</li></ul><p>💡 <strong>Pro Tip:</strong> Book accommodations in advance for the best deals and locations!</p></div>'
+      }
+    })
 
-    // Blog content section
-    if (rowData.content_enabled !== false && rowData.content) {
-      sections.push({
-        post_id: postId,
-        template_id: 'e30d9e40-eb3a-41d3-aeac-413cfca52fe0', // Blog content section
-        position: position++,
-        data: {
-          content: rowData.content
-        },
-        is_active: true
-      })
-    }
+    // 4. Starter Pack (Why This Destination Hits Different) - Position 3
+    sections.push({
+      post_id: postId,
+      template_id: 'b87245be-1b68-47d4-83a6-fac582a0847f',
+      position: 3,
+      is_active: true,
+      data: {
+        destination: rowData.destination || rowData.hero_location || 'Amazing Destination',
+        bestTime: rowData.best_time || rowData.best_season || 'Year-round',
+        duration: rowData.duration || '3-5 days',
+        budget: rowData.budget || rowData.budget_range || '$100-300 per day',
+        currency: rowData.currency || 'USD',
+        language: rowData.language || 'English widely spoken',
+        timezone: rowData.timezone || 'Local timezone',
+        highlights: rowData.highlights ? (Array.isArray(rowData.highlights) ? rowData.highlights : rowData.highlights.split(',').map((h: string) => h.trim())) : [
+          'Perfect Duration: 3-5 days - Ideal for exploring without rushing',
+          'Budget Range: $100-300 per day - Options for every traveler',
+          'Must-See Attractions: 10+ incredible experiences await',
+          'Authentic Culture: Immerse yourself in local traditions and flavors'
+        ]
+      }
+    })
 
-    // Overview section (Why Destination Hits Different)
-    if (rowData.overview_enabled === true || rowData.overview_title || rowData.overview_description) {
-      sections.push({
-        post_id: postId,
-        template_id: 'b1d8062e-9fff-46d4-86b8-f198de9f3d38', // Overview section
-        position: position++,
-        data: {
-          title: rowData.overview_title || "Why this destination hits different",
-          description: rowData.overview_description || "Discover what makes this place truly special"
-        },
-        is_active: true
-      })
-    }
+    // 5. Where to Stay - Position 4
+    sections.push({
+      post_id: postId,
+      template_id: '833666f2-e112-40c0-9d50-02f160b96f3a',
+      position: 4,
+      is_active: true,
+      data: {
+        neighborhoods: rowData.neighborhoods ? JSON.parse(rowData.neighborhoods) : [
+          {
+            name: 'City Center',
+            description: 'Heart of the action with easy access to major attractions',
+            priceRange: '$150-350/night',
+            bestFor: 'First-time visitors, business travelers',
+            highlights: ['Walking distance to attractions', 'Great dining options', 'Public transport hub']
+          },
+          {
+            name: 'Historic District',
+            description: 'Charming area with traditional architecture and culture',
+            priceRange: '$100-250/night',
+            bestFor: 'Culture enthusiasts, romantic getaways',
+            highlights: ['Historic landmarks', 'Local markets', 'Authentic atmosphere']
+          },
+          {
+            name: 'Modern Quarter',
+            description: 'Contemporary area with upscale amenities',
+            priceRange: '$200-400/night',
+            bestFor: 'Luxury travelers, shopping lovers',
+            highlights: ['Luxury shopping', 'Fine dining', 'Modern conveniences']
+          }
+        ],
+        tips: rowData.accommodation_tips ? rowData.accommodation_tips.split(',').map((tip: string) => tip.trim()) : [
+          'Book accommodations near transportation hubs for easy access',
+          'Consider staying slightly outside the center for better value',
+          'Look for properties with local experiences and cultural insights'
+        ]
+      }
+    })
 
-    // Attractions section (Top Things to Do)
-    if (rowData.attractions_enabled === true || rowData.attractions_title || rowData.attractions_description) {
-      sections.push({
-        post_id: postId,
-        template_id: 'e596d688-31d9-4722-926d-18868f50f0cf', // Attractions section
-        position: position++,
-        data: {
-          title: rowData.attractions_title || "Top Things to Do",
-          description: rowData.attractions_description || "Explore the best attractions and activities"
-        },
-        is_active: true
-      })
-    }
+    // 6. AI CTA (Plan Your Perfect Trip) - Position 5
+    sections.push({
+      post_id: postId,
+      template_id: '03d9efa8-2c31-489d-94af-d2d85f52aa9c',
+      position: 5,
+      is_active: true,
+      data: {
+        title: rowData.ai_cta_title || 'Plan Your Perfect Adventure',
+        subtitle: rowData.ai_cta_subtitle || 'Let our AI travel assistant create a personalized itinerary just for you',
+        description: rowData.ai_cta_description || 'Answer a few quick questions about your travel style, interests, and budget. Our AI will craft a detailed day-by-day itinerary with recommendations, optimal routes, and insider tips.',
+        buttonText: rowData.ai_cta_button || 'Create My Custom Itinerary',
+        buttonUrl: rowData.ai_cta_url || '/ai-planner',
+        features: rowData.ai_features ? rowData.ai_features.split(',').map((f: string) => f.trim()) : [
+          'Personalized day-by-day schedules',
+          'Recommendations based on your interests',
+          'Optimal routes to minimize travel time',
+          'Real-time updates for events and closures'
+        ],
+        testimonial: rowData.ai_testimonial ? JSON.parse(rowData.ai_testimonial) : {
+          text: 'The AI planner helped us discover hidden gems and create the perfect itinerary for our budget and interests!',
+          author: 'Travel Enthusiast',
+          location: 'Verified Traveler'
+        }
+      }
+    })
 
-    // Places section (Places to Visit Nearby)
-    if (rowData.places_enabled === true || rowData.places_title || rowData.places_description) {
-      sections.push({
-        post_id: postId,
-        template_id: '5251d41a-d7f8-44b6-bfaf-636d50c859b1', // Places section
-        position: position++,
-        data: {
-          title: rowData.places_title || "Places to Visit Nearby",
-          description: rowData.places_description || "Discover amazing places in the area"
-        },
-        is_active: true
-      })
-    }
+    // 7. FAQ - Position 6
+    sections.push({
+      post_id: postId,
+      template_id: '710f8880-c86d-4353-b16f-474c74debd31',
+      position: 6,
+      is_active: true,
+      data: {
+        faqs: rowData.faq_items ? (Array.isArray(rowData.faq_items) ? rowData.faq_items : JSON.parse(rowData.faq_items)) : [
+          {
+            question: 'How many days do I need for this destination?',
+            answer: 'We recommend at least 3-5 days to see the main attractions without rushing. With more time, you can explore surrounding areas and have a more relaxed experience.'
+          },
+          {
+            question: 'What\'s the best way to get around?',
+            answer: 'The destination has excellent public transportation, but many attractions are also within walking distance. Taxis and ride-sharing services are widely available for longer distances.'
+          },
+          {
+            question: 'Is it expensive to visit?',
+            answer: 'Costs can vary greatly depending on your travel style. Budget travelers can expect to spend $100-150/day, while luxury travelers might spend $300-500/day including accommodation, meals, and activities.'
+          },
+          {
+            question: 'When is the best time to visit?',
+            answer: rowData.best_time_answer || 'The destination is beautiful year-round, but the best time depends on your preferences for weather, crowds, and activities. Each season offers unique experiences.'
+          },
+          {
+            question: 'Do I need to book attractions in advance?',
+            answer: 'For popular attractions, we highly recommend booking in advance, especially during peak season. This can save you time and sometimes money with early-bird discounts.'
+          }
+        ]
+      }
+    })
 
-    // Where to Stay section
-    if (rowData.stay_enabled === true || rowData.stay_title || rowData.stay_description) {
-      sections.push({
-        post_id: postId,
-        template_id: '833666f2-e112-40c0-9d50-02f160b96f3a', // Where to Stay section
-        position: position++,
-        data: {
-          title: rowData.stay_title || "Where to Stay",
-          description: rowData.stay_description || "Find the perfect accommodation for your trip"
-        },
-        is_active: true
-      })
-    }
-
-    // Hotels section
-    if (rowData.hotels_enabled === true || rowData.hotels_title || rowData.hotels_description) {
-      sections.push({
-        post_id: postId,
-        template_id: 'e2036f8e-e01e-4a04-8cf7-814f77b4343b', // Hotels section
-        position: position++,
-        data: {
-          title: rowData.hotels_title || "Hotels You'll Actually Love",
-          description: rowData.hotels_description || "Curated list of exceptional accommodations"
-        },
-        is_active: true
-      })
-    }
-
-    // AI CTA section
-    if (rowData.ai_cta_enabled === true || rowData.ai_cta_title || rowData.ai_cta_description) {
-      sections.push({
-        post_id: postId,
-        template_id: '03d9efa8-2c31-489d-94af-d2d85f52aa9c', // AI CTA section
-        position: position++,
-        data: {
-          title: rowData.ai_cta_title || "Meet Your AI Travel Assistant",
-          description: rowData.ai_cta_description || "Get personalized recommendations for your trip"
-        },
-        is_active: true
-      })
-    }
-
-    // Internal Links section
-    if (rowData.internal_links_enabled === true || rowData.internal_links_manual) {
-      const linksData: any = {
+    // 8. Internal Links (Related Travel Guides) - Position 7
+    sections.push({
+      post_id: postId,
+      template_id: 'c2caf0b9-68b6-48c1-999c-4cc48bd12242',
+      position: 7,
+      is_active: true,
+      data: {
+        title: rowData.related_title || 'Explore More Destinations',
         autoGenerate: rowData.internal_links_auto !== false,
-        links: []
+        links: rowData.internal_links_manual ? (Array.isArray(rowData.internal_links_manual) ? rowData.internal_links_manual : JSON.parse(rowData.internal_links_manual)) : []
       }
+    })
 
-      // Add manual links if provided
-      if (rowData.internal_links_manual && Array.isArray(rowData.internal_links_manual)) {
-        linksData.links = rowData.internal_links_manual
-        linksData.autoGenerate = false
-      }
-
-      sections.push({
-        post_id: postId,
-        template_id: 'c2caf0b9-68b6-48c1-999c-4cc48bd12242', // Internal Links section
-        position: position++,
-        data: linksData,
-        is_active: true
-      })
-    }
-
-    // FAQ section
-    if (rowData.faq_enabled === true || rowData.faq_items) {
-      let faqItems = []
-      
-      if (rowData.faq_items && Array.isArray(rowData.faq_items)) {
-        faqItems = rowData.faq_items
-      }
-
-      sections.push({
-        post_id: postId,
-        template_id: '710f8880-c86d-4353-b16f-474c74debd31', // FAQ section
-        position: position++,
-        data: {
-          faqs: faqItems
+    // 9. Author Section - Position 8
+    sections.push({
+      post_id: postId,
+      template_id: '58e1b71c-600b-48d3-a956-f9b27bc368b2',
+      position: 8,
+      is_active: true,
+      data: {
+        authorName: rowData.author_name || 'Travel Expert',
+        bio: rowData.author_bio || 'Passionate travel writer with years of experience exploring amazing destinations around the world. Dedicated to helping fellow travelers discover authentic experiences and hidden gems.',
+        avatar: rowData.author_avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+        location: rowData.author_location || 'World Traveler',
+        experience: rowData.author_experience || '5+ years in travel',
+        specialty: rowData.author_specialty || 'Cultural experiences & local cuisine',
+        socialLinks: rowData.author_social ? JSON.parse(rowData.author_social) : {
+          instagram: 'https://instagram.com/travelexpert',
+          twitter: 'https://twitter.com/travelexpert',
+          website: 'https://travelblog.com'
         },
-        is_active: true
-      })
-    }
+        stats: rowData.author_stats ? JSON.parse(rowData.author_stats) : {
+          articlesWritten: 25,
+          countriesVisited: 15,
+          yearsExperience: 5
+        }
+      }
+    })
 
     // Insert all sections
     if (sections.length > 0) {

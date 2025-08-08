@@ -112,17 +112,19 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Header with Logo and Language Switcher */}
-      <div className="bg-white border-b border-blue-200 shadow-sm">
-        <div className="max-w-full mx-auto px-8 py-2">
+      {/* Header overlay on hero - Logo and Language Switcher */}
+      <div className="absolute top-0 left-0 right-0 z-50">
+        <div className="max-w-full mx-auto px-8 py-4">
           <div className="flex items-center justify-between w-full">
-            {/* Left side: Logo */}
+            {/* Left side: White Logo */}
             <div className="flex items-center">
-              <LogoImage 
-                src="https://www.cuddlynest.com/images/logo/cn_logo_hpv2_whit_en.png"
-                alt="CuddlyNest Logo"
-                className="h-10 w-auto"
-              />
+              <Link href="/blog">
+                <LogoImage 
+                  src="https://wxprzwoylqjzozhezttc.supabase.co/storage/v1/object/public/blog-images/logos/cuddlynest-logo.png"
+                  alt="CuddlyNest Logo"
+                  className="h-10 w-auto cursor-pointer filter brightness-0 invert"
+                />
+              </Link>
             </div>
             
             {/* Right side: Language switcher */}
@@ -200,7 +202,83 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
   )
 }
 
-// Generate metadata for SEO - TEMPORARILY DISABLED FOR DEBUGGING  
-// export async function generateMetadata({ params }: BlogPostPageProps) {
-//   // This entire function is commented out to test if metadata generation causes hanging
-// }
+// Generate metadata for SEO with hreflang support
+export async function generateMetadata({ params }: BlogPostPageProps) {
+  const resolvedParams = await params
+  
+  // Get the post data
+  const post = await getModernPostBySlug(resolvedParams.slug)
+  
+  if (!post) {
+    return {
+      title: 'Post Not Found',
+      description: 'The requested post could not be found.'
+    }
+  }
+
+  // Get all translations for hreflang
+  const { data: allTranslations } = await supabase
+    .from('post_translations')
+    .select('language_code, translated_slug')
+    .eq('original_post_id', post.id)
+    .eq('translation_status', 'completed')
+
+  // Build comprehensive hreflang object
+  const languages: Record<string, string> = {
+    'en': `/blog/${post.slug}`, // Original English version
+    'x-default': `/blog/${post.slug}` // Default fallback
+  }
+  
+  // Add all completed translations
+  if (allTranslations && allTranslations.length > 0) {
+    allTranslations.forEach(translation => {
+      languages[translation.language_code] = `/blog/${post.slug}/${translation.language_code}`
+    })
+  }
+
+  return {
+    title: post.seo_title || post.title,
+    description: post.seo_description || post.excerpt,
+    keywords: post.meta_keywords || `travel, ${post.title}, travel guide`,
+    alternates: {
+      canonical: `/blog/${post.slug}`,
+      languages: languages
+    },
+    openGraph: {
+      title: post.og_title || post.seo_title || post.title,
+      description: post.og_description || post.seo_description || post.excerpt,
+      type: 'article',
+      locale: 'en',
+      alternateLocale: allTranslations?.map(t => t.language_code) || [],
+      publishedTime: post.published_at,
+      modifiedTime: post.updated_at || post.published_at,
+      authors: [post.author?.display_name || 'CuddlyNest Travel Team'],
+      images: post.og_image?.file_url ? [{
+        url: post.og_image.file_url,
+        alt: post.og_image_alt || post.title
+      }] : []
+    },
+    twitter: {
+      card: 'summary_large_image',
+      site: '@cuddlynest',
+      title: post.twitter_title || post.og_title || post.seo_title || post.title,
+      description: post.twitter_description || post.og_description || post.seo_description || post.excerpt,
+      images: post.twitter_image || post.og_image?.file_url ? [{
+        url: post.twitter_image || post.og_image?.file_url,
+        alt: post.twitter_image_alt || post.og_image_alt || post.title
+      }] : []
+    },
+    robots: {
+      index: post.robots_index !== false,
+      follow: post.robots_follow !== false,
+      nosnippet: post.robots_nosnippet === true,
+      googleBot: {
+        index: post.robots_index !== false,
+        follow: post.robots_follow !== false,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
+  }
+}

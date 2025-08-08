@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { getRecentPosts, getPostsCount, getPopularCategories, getFeaturedPosts } from "@/lib/supabase"
 import { KlookStyleBlog } from "@/components/klook-style-blog"
 import { Footer } from "@/components/footer"
+import { getLogoSettings } from "@/lib/logo-settings"
 
 // Default categories if database is empty
 const defaultCategories = [
@@ -44,11 +45,12 @@ export const metadata = {
 
 export default async function BlogPage() {
   // Fetch real data from database
-  const [recentPosts, featuredPosts, totalPosts, categories] = await Promise.all([
+  const [recentPosts, featuredPosts, totalPosts, categories, logoSettings] = await Promise.all([
     getRecentPosts(12),
     getFeaturedPosts(6),
     getPostsCount(),
-    getPopularCategories(8)
+    getPopularCategories(8),
+    getLogoSettings()
   ])
 
   const displayCategories = categories.length > 0 
@@ -63,6 +65,7 @@ export default async function BlogPage() {
         totalPosts={totalPosts}
         categories={displayCategories}
         additionalCategories={defaultCategories}
+        blogLogo={logoSettings.blog_logo}
       />
       <Footer />
     </div>

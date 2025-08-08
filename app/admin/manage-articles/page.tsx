@@ -58,20 +58,58 @@ export default function ManageArticlesPage() {
     try {
       console.log('Starting to load posts...')
       
+      /* 
+       * IMPORTANT: Supabase has default limits that can cause posts to not appear
+       * in the admin interface. We explicitly set a high limit and check counts
+       * to ensure content managers can see ALL posts for deletion/management.
+       * 
+       * Previous issue: Posts existed in DB but weren't loaded due to implicit limits,
+       * causing search to return 0 results even though posts existed.
+       */
+      
+      // First, get the total count to ensure we're not hitting limits
+      const { count: totalCount, error: countError } = await supabase
+        .from('modern_posts')
+        .select('*', { count: 'exact', head: true })
+      
+      if (countError) {
+        console.error('Error getting total count:', countError)
+      } else {
+        console.log('Total posts in database:', totalCount)
+      }
+      
       const { data, error } = await supabase
         .from('modern_posts')
         .select('*')
         .order('updated_at', { ascending: false })
+        .limit(5000) // High limit - will implement pagination if this becomes insufficient
 
       console.log('Supabase query result:', { 
         dataLength: data?.length, 
         error: error,
-        firstPost: data?.[0] ? {
-          id: data[0].id,
-          title: data[0].title,
-          status: data[0].status
-        } : null
+        samplePosts: data?.slice(0, 3).map(post => ({
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          status: post.status
+        })) || []
       })
+      
+      // Check for posts with "akash" in title
+      const akashPosts = data?.filter(post => 
+        post.title.toLowerCase().includes('akash') ||
+        post.slug.toLowerCase().includes('akash')
+      ) || []
+      console.log('Posts containing "akash":', akashPosts.length, akashPosts.map(p => p.title))
+      
+      // Additional debugging: Check for specific IDs we know exist
+      const specificIds = [
+        'ff281c7f-ae94-40fa-b56c-138fbca6d314', // Akash Aman Test
+        'c3d4e000-d973-4e73-a93c-fb686116308b', // Akash Aman
+        '9e3c9641-35aa-4b39-8618-86b31e7a5616'  // Akash Aman 2603
+      ]
+      const foundSpecificPosts = data?.filter(post => specificIds.includes(post.id)) || []
+      console.log('Specific Akash posts found:', foundSpecificPosts.length, foundSpecificPosts.map(p => ({ id: p.id, title: p.title })))
 
       if (error) {
         console.error('Supabase error details:', error)
@@ -80,6 +118,20 @@ export default function ManageArticlesPage() {
       
       const postsData = data || []
       console.log(`Successfully loaded ${postsData.length} posts`)
+      
+      // Warning system for content management team
+      if (totalCount && postsData.length < totalCount) {
+        console.warn(`⚠️ WARNING: Only loaded ${postsData.length} out of ${totalCount} total posts!`)
+        console.warn('Some posts may not be visible in the admin interface.')
+        
+        // Show alert to content team if significant posts are missing
+        if (totalCount - postsData.length > 50) {
+          alert(`⚠️ WARNING: This interface is only showing ${postsData.length} out of ${totalCount} total posts. Some posts may not be visible for management. Please contact technical support.`)
+        }
+      } else if (totalCount) {
+        console.log(`✅ All ${totalCount} posts loaded successfully`)
+      }
+      
       setPosts(postsData)
     } catch (error) {
       console.error('Error loading posts:', error)
@@ -92,19 +144,49 @@ export default function ManageArticlesPage() {
 
   const filterPosts = () => {
     let filtered = posts
+    
+    console.log('🔍 Filtering posts:', {
+      totalPosts: posts.length,
+      searchQuery,
+      statusFilter,
+      sampleTitles: posts.slice(0, 5).map(p => p.title)
+    })
 
     // Filter by status
     if (statusFilter !== 'all') {
       filtered = filtered.filter(post => post.status === statusFilter)
+      console.log(`Status filter "${statusFilter}": ${filtered.length} posts`)
     }
 
     // Filter by search query
     if (searchQuery.trim()) {
-      filtered = filtered.filter(post =>
-        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.excerpt?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      const query = searchQuery.toLowerCase().trim()
+      console.log(`Searching for: "${query}"`)
+      
+      const beforeSearch = filtered.length
+      filtered = filtered.filter(post => {
+        const titleMatch = post.title.toLowerCase().includes(query)
+        const slugMatch = post.slug.toLowerCase().includes(query)
+        const excerptMatch = post.excerpt?.toLowerCase().includes(query)
+        const idMatch = post.id.toLowerCase().includes(query)
+        const authorMatch = (post.author?.display_name || '').toLowerCase().includes(query)
+        
+        const matches = titleMatch || slugMatch || excerptMatch || idMatch || authorMatch
+        
+        if (matches) {
+          console.log(`✅ Match found: "${post.title}" (slug: ${post.slug})`, {
+            titleMatch,
+            slugMatch,
+            excerptMatch,
+            idMatch,
+            authorMatch
+          })
+        }
+        
+        return matches
+      })
+      
+      console.log(`Search results: ${beforeSearch} → ${filtered.length} posts`)
     }
 
     setFilteredPosts(filtered)
@@ -227,10 +309,45 @@ export default function ManageArticlesPage() {
                 </div>
               </div>
             </div>
-            <Button onClick={loadPosts} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={async () => {
+                  console.log('🔄 Force reloading posts...')
+                  setLoading(true)
+                  setPosts([])
+                  setFilteredPosts([])
+                  
+                  // Add small delay to ensure state is cleared
+                  await new Promise(resolve => setTimeout(resolve, 100))
+                  await loadPosts()
+                }} 
+                variant="outline"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Force Refresh
+              </Button>
+              <Button 
+                onClick={() => {
+                  console.log('🐛 DEBUG INFO:', {
+                    totalPostsLoaded: posts.length,
+                    currentSearchQuery: searchQuery,
+                    filteredPostsCount: filteredPosts.length,
+                    postsWithAkash: posts.filter(p => p.title.toLowerCase().includes('akash')).length,
+                    sampleTitles: posts.slice(0, 10).map(p => p.title),
+                    akashPosts: posts.filter(p => p.title.toLowerCase().includes('akash')).map(p => ({
+                      id: p.id,
+                      title: p.title,
+                      slug: p.slug
+                    }))
+                  })
+                  alert(`Debug info logged to console. Found ${posts.filter(p => p.title.toLowerCase().includes('akash')).length} posts with "akash"`)
+                }}
+                variant="outline"
+                className="bg-red-50 hover:bg-red-100"
+              >
+                🐛 Debug
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -243,7 +360,7 @@ export default function ManageArticlesPage() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search articles by title, slug, or excerpt..."
+                  placeholder="Search by title, slug, excerpt, ID, or author name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -265,6 +382,17 @@ export default function ManageArticlesPage() {
                     )}
                   </Button>
                 ))}
+                <Button
+                  onClick={() => {
+                    console.log('Clearing search and showing all posts')
+                    setSearchQuery('')
+                    setStatusFilter('all')
+                  }}
+                  variant="outline"
+                  className="bg-green-50 hover:bg-green-100"
+                >
+                  Clear All
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -336,6 +464,86 @@ export default function ManageArticlesPage() {
                     ? 'Try adjusting your search or filter criteria.' 
                     : 'No articles have been created yet.'}
                 </p>
+                {searchQuery && (
+                  <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                    <p className="font-semibold text-yellow-800">Debug Info:</p>
+                    <p>Total posts loaded: {posts.length}</p>
+                    <p>Search query: "{searchQuery}"</p>
+                    <p>Posts with "akash": {posts.filter(p => p.title.toLowerCase().includes('akash')).length}</p>
+                    <Button 
+                      onClick={() => {
+                        console.log('Sample posts:', posts.slice(0, 5).map(p => ({ title: p.title, id: p.id })))
+                        console.log('Akash posts:', posts.filter(p => p.title.toLowerCase().includes('akash')))
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                    >
+                      Log Debug Info
+                    </Button>
+                    <Button 
+                      onClick={async () => {
+                        console.log('🔍 Direct DB query for Akash posts...')
+                        try {
+                          const { data, error } = await supabase
+                            .from('modern_posts')
+                            .select('id, title, slug, status')
+                            .or('title.ilike.%akash%,slug.ilike.%akash%')
+                            .limit(10)
+                          
+                          if (error) {
+                            console.error('Direct query error:', error)
+                          } else {
+                            console.log('Direct query results:', data)
+                            alert(`Direct DB query found ${data?.length || 0} posts with "akash"`)
+                          }
+                        } catch (err) {
+                          console.error('Direct query exception:', err)
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 ml-2"
+                    >
+                      Direct DB Query
+                    </Button>
+                    <Button 
+                      onClick={async () => {
+                        console.log('🚀 Loading Akash posts directly...')
+                        try {
+                          const { data, error } = await supabase
+                            .from('modern_posts')
+                            .select('*')
+                            .or('title.ilike.%akash%,slug.ilike.%akash%')
+                          
+                          if (error) {
+                            console.error('Error loading akash posts:', error)
+                          } else if (data && data.length > 0) {
+                            console.log('Found akash posts:', data)
+                            // Add these posts to the existing posts array if not already present
+                            const newPosts = [...posts]
+                            data.forEach(akashPost => {
+                              if (!newPosts.find(p => p.id === akashPost.id)) {
+                                newPosts.push(akashPost)
+                              }
+                            })
+                            setPosts(newPosts)
+                            alert(`Added ${data.length} Akash posts to the list. Try searching again!`)
+                          } else {
+                            alert('No Akash posts found in database')
+                          }
+                        } catch (err) {
+                          console.error('Error:', err)
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 ml-2 bg-blue-50 hover:bg-blue-100"
+                    >
+                      Inject Akash Posts
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -352,9 +560,10 @@ export default function ManageArticlesPage() {
                           </Badge>
                         </div>
                         
-                        <p className="text-sm text-gray-600 mb-2">
-                          Slug: <code className="bg-gray-100 px-2 py-1 rounded text-xs">{post.slug}</code>
-                        </p>
+                        <div className="text-sm text-gray-600 mb-2 space-y-1">
+                          <p>Slug: <code className="bg-gray-100 px-2 py-1 rounded text-xs">{post.slug}</code></p>
+                          <p>ID: <code className="bg-blue-50 px-2 py-1 rounded text-xs text-blue-700">{post.id}</code></p>
+                        </div>
                         
                         {post.excerpt && (
                           <p className="text-gray-600 text-sm mb-3 line-clamp-2">
@@ -372,7 +581,7 @@ export default function ManageArticlesPage() {
                             <span>Updated: {new Date(post.updated_at).toLocaleDateString()}</span>
                           </div>
                           {post.author?.display_name && (
-                            <span>By: {post.author.display_name}</span>
+                            <span>By: {post.author?.display_name}</span>
                           )}
                         </div>
                       </div>

@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { Card } from '@/components/ui/card'
 import { Plus, Trash2, Save, X, Upload, Loader2 } from 'lucide-react'
 import { uploadBlogImage, validateImageFile } from '@/lib/storage'
+import { supabase } from '@/lib/supabase'
 
 interface ModernSection {
   id: string
@@ -171,97 +172,724 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
     updateField(key, updatedArray)
   }
 
-  const renderHeroEditor = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="text-blue-900 font-medium">Title</Label>
-          <Input
-            value={editedData.title || ''}
-            onChange={(e) => updateField('title', e.target.value)}
-            placeholder="Amazing destination title"
-            className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <Label className="text-blue-900 font-medium">Badge</Label>
-          <Input
-            value={editedData.badge || ''}
-            onChange={(e) => updateField('badge', e.target.value)}
-            placeholder="Featured destination"
-            className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-      </div>
-      
-      <div>
-        <Label className="text-blue-900 font-medium">Subtitle</Label>
-        <Textarea
-          value={editedData.subtitle || ''}
-          onChange={(e) => updateField('subtitle', e.target.value)}
-          placeholder="Compelling description of the destination"
-          className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-          rows={3}
-        />
-      </div>
-      
-      <div>
-        <Label className="text-blue-900 font-medium">Background Image URL</Label>
-        <Input
-          value={editedData.backgroundImage || ''}
-          onChange={(e) => updateField('backgroundImage', e.target.value)}
-          placeholder="https://images.unsplash.com/..."
-          className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-        />
-      </div>
-      
-      <div>
-        <Label className="text-blue-900 font-medium">Location</Label>
-        <Input
-          value={editedData.location || ''}
-          onChange={(e) => updateField('location', e.target.value)}
-          placeholder="City, Country"
-          className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-        />
-      </div>
-    </div>
-  )
+  const renderHeroEditor = () => {
+    // Initialize default data structure if not present
+    if (!editedData.badges) {
+      updateField('badges', {
+        main: { text: '🏔️ Your travel adventure starts here', show: true },
+        location: { show: true },
+        calendar: { text: 'Perfect year-round', show: true },
+        users: { text: 'For every traveler', show: true },
+        rating: { text: '4.9/5 from travelers', show: true },
+        author: { show: true }
+      })
+    }
+    
+    if (!editedData.textSizes) {
+      updateField('textSizes', {
+        title: 'responsive', // responsive, small, medium, large, xl
+        subtitle: 'responsive',
+        badges: 'sm'
+      })
+    }
+    
+    if (!editedData.ctaButtons) {
+      updateField('ctaButtons', {
+        primary: { text: 'Start planning your trip', url: 'https://cuddlynest.com', show: true }
+      })
+    }
+    
+    if (!editedData.bottomText) {
+      updateField('bottomText', {
+        text: '🎁 Free to use • No signup required • Personalized just for you',
+        show: true
+      })
+    }
 
-  const renderAuthorEditor = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="text-blue-900 font-medium">Author Name</Label>
-          <Input
-            value={editedData.name || ''}
-            onChange={(e) => updateField('name', e.target.value)}
-            placeholder="Travel Expert"
-            className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-          />
+    const textSizeOptions = [
+      { value: 'responsive', label: 'Responsive (Recommended)' },
+      { value: 'small', label: 'Small' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'large', label: 'Large' },
+      { value: 'xl', label: 'Extra Large' }
+    ]
+
+    return (
+      <div className="space-y-8">
+        {/* Basic Info Section */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Basic Information</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-blue-900 font-medium">Title</Label>
+              <Input
+                value={editedData.title || ''}
+                onChange={(e) => updateField('title', e.target.value)}
+                placeholder="Italian Lakes Region: Como, Garda & Maggiore Complete Guide"
+                className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <Label className="text-blue-900 font-medium">Location</Label>
+              <Input
+                value={editedData.location || ''}
+                onChange={(e) => updateField('location', e.target.value)}
+                placeholder="Italian Lakes, Italy"
+                className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label className="text-blue-900 font-medium">Subtitle</Label>
+            <Textarea
+              value={editedData.subtitle || ''}
+              onChange={(e) => updateField('subtitle', e.target.value)}
+              placeholder="Discover the breathtaking beauty of Northern Italy's most stunning lakes"
+              className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+          
+          <div>
+            <Label className="text-blue-900 font-medium">Background Image URL</Label>
+            <Input
+              value={editedData.backgroundImage || ''}
+              onChange={(e) => updateField('backgroundImage', e.target.value)}
+              placeholder="https://images.unsplash.com/photo-1527004013197-933c4bb611b3"
+              className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
         </div>
-        <div>
-          <Label className="text-blue-900 font-medium">Avatar URL</Label>
-          <Input
-            value={editedData.avatar || ''}
-            onChange={(e) => updateField('avatar', e.target.value)}
-            placeholder="/placeholder.svg"
-            className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-          />
+
+        {/* Text Size Controls Section */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Text Size Controls (Translation Optimization)</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-blue-900 font-medium">Title Size</Label>
+              <select
+                value={editedData.textSizes?.title || 'responsive'}
+                onChange={(e) => updateField('textSizes', { ...editedData.textSizes, title: e.target.value })}
+                className="mt-1 w-full p-2 border border-blue-200 rounded-md focus:border-blue-500 focus:ring-blue-500"
+              >
+                {textSizeOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-blue-900 font-medium">Subtitle Size</Label>
+              <select
+                value={editedData.textSizes?.subtitle || 'responsive'}
+                onChange={(e) => updateField('textSizes', { ...editedData.textSizes, subtitle: e.target.value })}
+                className="mt-1 w-full p-2 border border-blue-200 rounded-md focus:border-blue-500 focus:ring-blue-500"
+              >
+                {textSizeOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-blue-900 font-medium">Badges Size</Label>
+              <select
+                value={editedData.textSizes?.badges || 'sm'}
+                onChange={(e) => updateField('textSizes', { ...editedData.textSizes, badges: e.target.value })}
+                className="mt-1 w-full p-2 border border-blue-200 rounded-md focus:border-blue-500 focus:ring-blue-500"
+              >
+                <option value="xs">Extra Small</option>
+                <option value="sm">Small</option>
+                <option value="base">Base</option>
+                <option value="lg">Large</option>
+                <option value="xl">Extra Large</option>
+              </select>
+            </div>
+          </div>
+          
+        </div>
+
+        {/* Badge Management Section */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Badge Management</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Main Badge */}
+            <Card className="p-4 border-blue-200">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-blue-900 font-medium">Main Badge</Label>
+                <Switch
+                  checked={editedData.badges?.main?.show !== false}
+                  onCheckedChange={(checked) => 
+                    updateField('badges', { 
+                      ...editedData.badges, 
+                      main: { ...editedData.badges?.main, show: checked } 
+                    })
+                  }
+                />
+              </div>
+              <Input
+                value={editedData.badges?.main?.text || ''}
+                onChange={(e) => updateField('badges', { 
+                  ...editedData.badges, 
+                  main: { ...editedData.badges?.main, text: e.target.value } 
+                })}
+                placeholder="🏔️ Your travel adventure starts here"
+                className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                disabled={editedData.badges?.main?.show === false}
+              />
+            </Card>
+
+            {/* Location Badge */}
+            <Card className="p-4 border-blue-200">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-blue-900 font-medium">Location Badge</Label>
+                <Switch
+                  checked={editedData.badges?.location?.show !== false}
+                  onCheckedChange={(checked) => 
+                    updateField('badges', { 
+                      ...editedData.badges, 
+                      location: { ...editedData.badges?.location, show: checked } 
+                    })
+                  }
+                />
+              </div>
+              <p className="text-sm text-blue-600">Uses location field from Basic Information</p>
+            </Card>
+
+            {/* Calendar Badge */}
+            <Card className="p-4 border-blue-200">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-blue-900 font-medium">Calendar Badge</Label>
+                <Switch
+                  checked={editedData.badges?.calendar?.show !== false}
+                  onCheckedChange={(checked) => 
+                    updateField('badges', { 
+                      ...editedData.badges, 
+                      calendar: { ...editedData.badges?.calendar, show: checked } 
+                    })
+                  }
+                />
+              </div>
+              <Input
+                value={editedData.badges?.calendar?.text || ''}
+                onChange={(e) => updateField('badges', { 
+                  ...editedData.badges, 
+                  calendar: { ...editedData.badges?.calendar, text: e.target.value } 
+                })}
+                placeholder="Perfect year-round"
+                className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                disabled={editedData.badges?.calendar?.show === false}
+              />
+            </Card>
+
+            {/* Users Badge */}
+            <Card className="p-4 border-blue-200">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-blue-900 font-medium">Users Badge</Label>
+                <Switch
+                  checked={editedData.badges?.users?.show !== false}
+                  onCheckedChange={(checked) => 
+                    updateField('badges', { 
+                      ...editedData.badges, 
+                      users: { ...editedData.badges?.users, show: checked } 
+                    })
+                  }
+                />
+              </div>
+              <Input
+                value={editedData.badges?.users?.text || ''}
+                onChange={(e) => updateField('badges', { 
+                  ...editedData.badges, 
+                  users: { ...editedData.badges?.users, text: e.target.value } 
+                })}
+                placeholder="For every traveler"
+                className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                disabled={editedData.badges?.users?.show === false}
+              />
+            </Card>
+
+            {/* Rating Badge */}
+            <Card className="p-4 border-blue-200">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-blue-900 font-medium">Rating Badge</Label>
+                <Switch
+                  checked={editedData.badges?.rating?.show !== false}
+                  onCheckedChange={(checked) => 
+                    updateField('badges', { 
+                      ...editedData.badges, 
+                      rating: { ...editedData.badges?.rating, show: checked } 
+                    })
+                  }
+                />
+              </div>
+              <Input
+                value={editedData.badges?.rating?.text || ''}
+                onChange={(e) => updateField('badges', { 
+                  ...editedData.badges, 
+                  rating: { ...editedData.badges?.rating, text: e.target.value } 
+                })}
+                placeholder="4.9/5 from travelers"
+                className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                disabled={editedData.badges?.rating?.show === false}
+              />
+            </Card>
+
+            {/* Author Badge */}
+            <Card className="p-4 border-blue-200">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-blue-900 font-medium">Author Badge (Top Row)</Label>
+                <Switch
+                  checked={editedData.badges?.author?.show !== false}
+                  onCheckedChange={(checked) => 
+                    updateField('badges', { 
+                      ...editedData.badges, 
+                      author: { ...editedData.badges?.author, show: checked } 
+                    })
+                  }
+                />
+              </div>
+              <p className="text-sm text-blue-600">Shows in top badge row after rating. Clickable to scroll to author section.</p>
+            </Card>
+          </div>
+        </div>
+
+        {/* CTA Button Section */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Call-to-Action Button</h3>
+          
+          <div className="grid grid-cols-1 gap-6">
+            {/* Primary CTA */}
+            <Card className="p-4 border-blue-200">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-blue-900 font-medium">Primary Button</Label>
+                <Switch
+                  checked={editedData.ctaButtons?.primary?.show !== false}
+                  onCheckedChange={(checked) => 
+                    updateField('ctaButtons', { 
+                      ...editedData.ctaButtons, 
+                      primary: { ...editedData.ctaButtons?.primary, show: checked } 
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-3">
+                <Input
+                  value={editedData.ctaButtons?.primary?.text || ''}
+                  onChange={(e) => updateField('ctaButtons', { 
+                    ...editedData.ctaButtons, 
+                    primary: { ...editedData.ctaButtons?.primary, text: e.target.value } 
+                  })}
+                  placeholder="Start planning your trip"
+                  className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                  disabled={editedData.ctaButtons?.primary?.show === false}
+                />
+                <Input
+                  value={editedData.ctaButtons?.primary?.url || ''}
+                  onChange={(e) => updateField('ctaButtons', { 
+                    ...editedData.ctaButtons, 
+                    primary: { ...editedData.ctaButtons?.primary, url: e.target.value } 
+                  })}
+                  placeholder="https://cuddlynest.com"
+                  className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                  disabled={editedData.ctaButtons?.primary?.show === false}
+                />
+              </div>
+            </Card>
+          </div>
+          
+        </div>
+
+        {/* Bottom Text Section */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Bottom Info Text</h3>
+          
+          <Card className="p-4 border-blue-200">
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-blue-900 font-medium">Show Bottom Text</Label>
+              <Switch
+                checked={editedData.bottomText?.show !== false}
+                onCheckedChange={(checked) => 
+                  updateField('bottomText', { 
+                    ...editedData.bottomText, 
+                    show: checked 
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-3">
+              <Label className="text-blue-900 font-medium">Bottom Text</Label>
+              <Input
+                value={editedData.bottomText?.text || ''}
+                onChange={(e) => updateField('bottomText', { 
+                  ...editedData.bottomText, 
+                  text: e.target.value 
+                })}
+                placeholder="🎁 Free to use • No signup required • Personalized just for you"
+                className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                disabled={editedData.bottomText?.show === false}
+              />
+              <p className="text-sm text-blue-600">
+                This text appears at the bottom of the hero section. Use emojis and • symbols for separation.
+              </p>
+            </div>
+          </Card>
+        </div>
+
+        {/* Preview Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Live Preview</h3>
+          <Card className="p-6 bg-gradient-to-br from-gray-900 to-gray-700 text-white border-blue-200 relative overflow-hidden">
+            {/* Background Image Preview */}
+            {editedData.backgroundImage && (
+              <div className="absolute inset-0 opacity-30">
+                <img 
+                  src={editedData.backgroundImage} 
+                  alt="Hero background" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            
+            <div className="relative z-10">
+              {/* Main Badge Preview */}
+              {editedData.badges?.main?.show && (
+                <div className="mb-4">
+                  <span className="inline-block bg-pink-500/90 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    {editedData.badges?.main?.text || '🏔️ Your travel adventure starts here'}
+                  </span>
+                </div>
+              )}
+
+              {/* Title Preview with dynamic sizing */}
+              <h1 className={`font-bold mb-4 leading-tight ${
+                editedData.textSizes?.title === 'small' ? 'text-2xl' :
+                editedData.textSizes?.title === 'medium' ? 'text-3xl' :
+                editedData.textSizes?.title === 'large' ? 'text-4xl' :
+                editedData.textSizes?.title === 'xl' ? 'text-5xl' :
+                'text-3xl md:text-4xl' // responsive default
+              }`}>
+                {editedData.title || 'Italian Lakes Region: Como, Garda & Maggiore Complete Guide'}
+              </h1>
+
+              {/* Subtitle Preview */}
+              <p className={`text-gray-200 mb-6 max-w-3xl ${
+                editedData.textSizes?.subtitle === 'small' ? 'text-sm' :
+                editedData.textSizes?.subtitle === 'medium' ? 'text-base' :
+                editedData.textSizes?.subtitle === 'large' ? 'text-lg' :
+                editedData.textSizes?.subtitle === 'xl' ? 'text-xl' :
+                'text-lg md:text-xl' // responsive default
+              }`}>
+                {editedData.subtitle || 'Discover the breathtaking beauty of Northern Italy\'s most stunning lakes'}
+              </p>
+
+              {/* Badges Preview - single row with horizontal scroll */}
+              <div className={`flex gap-3 mb-6 overflow-x-auto scrollbar-hide pr-12 ${
+                editedData.textSizes?.badges === 'xs' ? 'text-xs' :
+                editedData.textSizes?.badges === 'sm' ? 'text-sm' :
+                editedData.textSizes?.badges === 'base' ? 'text-base' :
+                editedData.textSizes?.badges === 'lg' ? 'text-lg' :
+                editedData.textSizes?.badges === 'xl' ? 'text-xl' :
+                'text-sm' // default
+              }`}>
+                {editedData.badges?.location?.show && (
+                  <div className="bg-white/15 backdrop-blur-md rounded-full px-3 py-1 border border-white/20 flex-shrink-0 whitespace-nowrap">
+                    📍 {editedData.location || 'Italian Lakes, Italy'}
+                  </div>
+                )}
+                {editedData.badges?.calendar?.show && (
+                  <div className="bg-white/15 backdrop-blur-md rounded-full px-3 py-1 border border-white/20 flex-shrink-0 whitespace-nowrap">
+                    📅 {editedData.badges?.calendar?.text || 'Perfect year-round'}
+                  </div>
+                )}
+                {editedData.badges?.users?.show && (
+                  <div className="bg-white/15 backdrop-blur-md rounded-full px-3 py-1 border border-white/20 flex-shrink-0 whitespace-nowrap">
+                    👥 {editedData.badges?.users?.text || 'For every traveler'}
+                  </div>
+                )}
+                {editedData.badges?.rating?.show && (
+                  <div className="bg-white/15 backdrop-blur-md rounded-full px-3 py-1 border border-white/20 flex-shrink-0 whitespace-nowrap">
+                    ⭐ {editedData.badges?.rating?.text || '4.9/5 from travelers'}
+                  </div>
+                )}
+                {editedData.badges?.author?.show && (
+                  <button className="bg-white/15 backdrop-blur-md rounded-full px-3 py-1 border border-white/20 hover:bg-white/25 transition-all cursor-pointer flex-shrink-0 whitespace-nowrap mr-8">
+                    👤 CuddlyNest Team
+                  </button>
+                )}
+              </div>
+
+              {/* CTA Button Preview */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                {editedData.ctaButtons?.primary?.show && (
+                  <button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full font-semibold">
+                    ✨ {editedData.ctaButtons?.primary?.text || 'Start planning your trip'}
+                  </button>
+                )}
+              </div>
+              
+              {/* Bottom Text Preview */}
+              {editedData.bottomText?.show && (
+                <div className="flex justify-center">
+                  <div className="bg-black/20 backdrop-blur-md rounded-full px-4 py-2 border border-white/10">
+                    <span className="text-white/80 text-sm">
+                      {editedData.bottomText?.text || '🎁 Free to use • No signup required • Personalized just for you'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
         </div>
       </div>
-      
-      <div>
-        <Label className="text-blue-900 font-medium">Bio</Label>
-        <Textarea
-          value={editedData.bio || ''}
-          onChange={(e) => updateField('bio', e.target.value)}
-          placeholder="Brief author biography"
-          className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-          rows={3}
-        />
+    )
+  }
+
+  const renderAuthorEditor = () => {
+    const [authors, setAuthors] = useState([])
+    const [loadingAuthors, setLoadingAuthors] = useState(true)
+    
+    const defaultAuthors = [
+      {
+        id: 'sarah-johnson',
+        name: 'Sarah Johnson',
+        title: 'Travel Expert',
+        bio: "Your friendly neighborhood travel obsessive who's been exploring the world for 10+ years. I'm all about finding those hidden gems and sharing the real tea on destinations - no sugar-coating, just honest vibes.",
+        avatar_url: '/placeholder.svg',
+        countries_explored: '50+ countries explored',
+        expert_since: 'Expert since 2014',
+        followers: '1M+ fellow travelers',
+        badges: ['Adventure seeker', 'Food lover', 'Culture enthusiast']
+      },
+      {
+        id: 'marco-rossi',
+        name: 'Marco Rossi',
+        title: 'Local Culture Specialist',
+        bio: 'Born and raised in Rome, I spend my time uncovering the authentic experiences that make each destination unique. From secret family recipes to hidden historical gems.',
+        avatar_url: '/placeholder.svg',
+        countries_explored: '30+ regions explored',
+        expert_since: 'Expert since 2018',
+        followers: '500K+ culture enthusiasts',
+        badges: ['Local insider', 'History buff', 'Foodie guide']
+      }
+    ]
+
+    useEffect(() => {
+      const loadAuthors = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('authors')
+            .select('*')
+            .order('name')
+          
+          if (error || !data || data.length === 0) {
+            setAuthors(defaultAuthors)
+          } else {
+            setAuthors(data)
+          }
+        } catch (error) {
+          setAuthors(defaultAuthors)
+        } finally {
+          setLoadingAuthors(false)
+        }
+      }
+      loadAuthors()
+    }, [])
+
+    const handleAuthorSelect = (authorId: string) => {
+      const selectedAuthor = authors.find(author => author.id === authorId)
+      if (selectedAuthor) {
+        updateField('selectedAuthorId', authorId)
+        updateField('name', selectedAuthor.name)
+        updateField('title', selectedAuthor.title)
+        updateField('bio', selectedAuthor.bio)
+        updateField('avatar', selectedAuthor.avatar_url)
+        updateField('countriesExplored', selectedAuthor.countries_explored)
+        updateField('expertSince', selectedAuthor.expert_since)
+        updateField('followers', selectedAuthor.followers)
+        updateField('badges', selectedAuthor.badges)
+      }
+    }
+
+    return (
+      <div className="space-y-8">
+        {/* Author Selection */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-blue-900 font-medium text-lg">Select Author</Label>
+            <Button
+              onClick={() => window.open('/admin/authors', '_blank')}
+              size="sm"
+              variant="outline"
+              className="text-blue-600 border-blue-200"
+            >
+              Manage Authors
+            </Button>
+          </div>
+          
+          {loadingAuthors ? (
+            <div className="text-center py-4 text-gray-500">Loading authors...</div>
+          ) : (
+            <select
+              value={editedData.selectedAuthorId || ''}
+              onChange={(e) => handleAuthorSelect(e.target.value)}
+              className="w-full p-3 border border-blue-200 rounded-md focus:border-blue-500 focus:ring-blue-500"
+            >
+              <option value="">Select an author or customize below</option>
+              {authors.map(author => (
+                <option key={author.id} value={author.id}>
+                  {author.name} - {author.title}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* Author Details (Editable) */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Author Details</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-blue-900 font-medium">Author Name</Label>
+              <Input
+                value={editedData.name || ''}
+                onChange={(e) => updateField('name', e.target.value)}
+                placeholder="Travel Expert"
+                className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <Label className="text-blue-900 font-medium">Title</Label>
+              <Input
+                value={editedData.title || ''}
+                onChange={(e) => updateField('title', e.target.value)}
+                placeholder="Travel Expert"
+                className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label className="text-blue-900 font-medium">Avatar URL</Label>
+            <Input
+              value={editedData.avatar || ''}
+              onChange={(e) => updateField('avatar', e.target.value)}
+              placeholder="/placeholder.svg"
+              className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div>
+            <Label className="text-blue-900 font-medium">Bio</Label>
+            <Textarea
+              value={editedData.bio || ''}
+              onChange={(e) => updateField('bio', e.target.value)}
+              placeholder="Brief author biography"
+              className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+              rows={4}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-blue-900 font-medium">Countries Explored</Label>
+              <Input
+                value={editedData.countriesExplored || ''}
+                onChange={(e) => updateField('countriesExplored', e.target.value)}
+                placeholder="50+ countries explored"
+                className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <Label className="text-blue-900 font-medium">Expert Since</Label>
+              <Input
+                value={editedData.expertSince || ''}
+                onChange={(e) => updateField('expertSince', e.target.value)}
+                placeholder="Expert since 2014"
+                className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <Label className="text-blue-900 font-medium">Followers</Label>
+              <Input
+                value={editedData.followers || ''}
+                onChange={(e) => updateField('followers', e.target.value)}
+                placeholder="1M+ fellow travelers"
+                className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label className="text-blue-900 font-medium">Badges (comma-separated)</Label>
+            <Input
+              value={Array.isArray(editedData.badges) ? editedData.badges.join(', ') : ''}
+              onChange={(e) => updateField('badges', e.target.value.split(',').map(b => b.trim()).filter(b => b))}
+              placeholder="Adventure seeker, Food lover, Culture enthusiast"
+              className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div className="space-y-4">
+          <Label className="text-blue-900 font-medium text-lg">Preview</Label>
+          <Card className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              <div className="w-24 h-24 rounded-full bg-purple-200 flex items-center justify-center">
+                {editedData.avatar ? (
+                  <img src={editedData.avatar} alt={editedData.name || 'Author'} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <span className="text-2xl font-bold text-purple-600">
+                    {(editedData.name || 'A').split(' ').map(n => n[0]).join('')}
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <h3 className="text-xl font-bold text-gray-900">{editedData.name || 'Author Name'}</h3>
+                  <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
+                    ✨ {editedData.title || 'Travel Expert'}
+                  </span>
+                </div>
+                
+                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
+                  {editedData.bio || 'Brief author biography will appear here...'}
+                </p>
+                
+                <div className="flex flex-wrap gap-2 text-xs mb-4">
+                  <div className="flex items-center gap-1 bg-purple-100 rounded-full px-3 py-1">
+                    📍 <span>{editedData.countriesExplored || '50+ countries explored'}</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-purple-100 rounded-full px-3 py-1">
+                    📅 <span>{editedData.expertSince || 'Expert since 2014'}</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-purple-100 rounded-full px-3 py-1">
+                    👥 <span>{editedData.followers || '1M+ fellow travelers'}</span>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-1">
+                  {(editedData.badges || []).map((badge, index) => (
+                    <span key={index} className="bg-white border border-purple-200 text-purple-700 px-2 py-1 rounded text-xs">
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderStarterPackEditor = () => {
     // Initialize default data structure if not present
@@ -1514,6 +2142,267 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
     </div>
   )
 
+  const renderAttractionsEditor = () => (
+    <div className="space-y-8">
+      {/* Basic Info */}
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Section Settings</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <Label htmlFor="title" className="text-blue-900 font-medium">Section Title</Label>
+            <Input
+              id="title"
+              value={editedData.title || ''}
+              onChange={(e) => updateField('title', e.target.value)}
+              placeholder="Must-Do Experiences"
+              className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <Label htmlFor="description" className="text-blue-900 font-medium">Section Description</Label>
+            <Input
+              id="description"
+              value={editedData.description || ''}
+              onChange={(e) => updateField('description', e.target.value)}
+              placeholder="Discover the best activities and experiences"
+              className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Activities Management */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Activities</h3>
+          <Button
+            onClick={() => addArrayItem('activities', {
+              title: 'New Experience',
+              description: 'Amazing experience description',
+              image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+              category: 'Experience',
+              rating: 4.5,
+              reviews: 1000,
+              duration: '3 hours',
+              price: '€45',
+              difficulty: 'Easy',
+              highlights: ['Professional guide', 'Small groups', 'Great experience']
+            })}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Activity
+          </Button>
+        </div>
+
+        <div className="space-y-6">
+          {editedData.activities?.map((activity: any, index: number) => (
+            <Card key={index} className="p-6 border-blue-200">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold text-blue-900">Activity {index + 1}</h4>
+                <Button
+                  onClick={() => removeArrayItem('activities', index)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-blue-900 font-medium">Activity Title</Label>
+                  <Input
+                    value={activity.title || ''}
+                    onChange={(e) => updateArrayItem('activities', index, 'title', e.target.value)}
+                    placeholder="Lake Como Villa Tours"
+                    className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label className="text-blue-900 font-medium">Category</Label>
+                  <select
+                    value={activity.category || 'Experience'}
+                    onChange={(e) => updateArrayItem('activities', index, 'category', e.target.value)}
+                    className="mt-1 w-full border border-blue-200 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="Experience">Experience</option>
+                    <option value="Villa Tours">Villa Tours</option>
+                    <option value="Wine Tasting">Wine Tasting</option>
+                    <option value="Boat Tour">Boat Tour</option>
+                    <option value="Hiking">Hiking</option>
+                    <option value="Wellness">Wellness</option>
+                    <option value="Culinary">Culinary</option>
+                    <option value="Historical">Historical</option>
+                    <option value="Art & Culture">Art & Culture</option>
+                    <option value="Photography">Photography</option>
+                    <option value="Adventure">Adventure</option>
+                    <option value="Romance">Romance</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <Label className="text-blue-900 font-medium">Description</Label>
+                <textarea
+                  value={activity.description || ''}
+                  onChange={(e) => updateArrayItem('activities', index, 'description', e.target.value)}
+                  placeholder="Explore George Clooney's neighborhood and stunning lakeside villas with expert guides"
+                  className="mt-1 w-full border border-blue-200 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <Label className="text-blue-900 font-medium">Duration</Label>
+                  <Input
+                    value={activity.duration || ''}
+                    onChange={(e) => updateArrayItem('activities', index, 'duration', e.target.value)}
+                    placeholder="3-4 hours"
+                    className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label className="text-blue-900 font-medium">Price</Label>
+                  <Input
+                    value={activity.price || ''}
+                    onChange={(e) => updateArrayItem('activities', index, 'price', e.target.value)}
+                    placeholder="€65"
+                    className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label className="text-blue-900 font-medium">Difficulty</Label>
+                  <select
+                    value={activity.difficulty || 'Easy'}
+                    onChange={(e) => updateArrayItem('activities', index, 'difficulty', e.target.value)}
+                    className="mt-1 w-full border border-blue-200 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="Easy">Easy</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Challenging">Challenging</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <Label className="text-blue-900 font-medium">Rating</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="1"
+                    max="5"
+                    value={activity.rating || 4.5}
+                    onChange={(e) => updateArrayItem('activities', index, 'rating', parseFloat(e.target.value) || 4.5)}
+                    className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label className="text-blue-900 font-medium">Number of Reviews</Label>
+                  <Input
+                    type="number"
+                    value={activity.reviews || 1000}
+                    onChange={(e) => updateArrayItem('activities', index, 'reviews', parseInt(e.target.value) || 1000)}
+                    className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <Label className="text-blue-900 font-medium">Image URL</Label>
+                <Input
+                  value={activity.image || ''}
+                  onChange={(e) => updateArrayItem('activities', index, 'image', e.target.value)}
+                  placeholder="https://images.unsplash.com/photo-..."
+                  className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="mt-4">
+                <Label className="text-blue-900 font-medium">Highlights (comma-separated)</Label>
+                <Input
+                  value={Array.isArray(activity.highlights) ? activity.highlights.join(', ') : ''}
+                  onChange={(e) => updateArrayItem('activities', index, 'highlights', e.target.value.split(', ').filter(h => h.trim()))}
+                  placeholder="Villa del Balbianello, Bellagio gardens, Expert guide"
+                  className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+            </Card>
+          )) || []}
+
+          {(!editedData.activities || editedData.activities.length === 0) && (
+            <Card className="p-8 text-center border-dashed border-blue-200">
+              <p className="text-blue-600 mb-4">No activities yet</p>
+              <Button
+                onClick={() => addArrayItem('activities', {
+                  title: 'Lake Como Villa Tours',
+                  description: 'Explore George Clooney\'s neighborhood and stunning lakeside villas with expert guides',
+                  image: 'https://images.unsplash.com/photo-1530841344095-7b1d18c64bae?q=80&w=2938&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                  category: 'Villa Tours',
+                  rating: 4.9,
+                  reviews: 1890,
+                  duration: '3-4 hours',
+                  price: '€65',
+                  difficulty: 'Easy',
+                  highlights: ['Villa del Balbianello', 'Bellagio gardens', 'Expert guide']
+                })}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add First Activity
+              </Button>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Preview Section */}
+      <div className="space-y-4">
+        <Label className="text-blue-900 font-medium text-lg">Preview</Label>
+        <Card className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              {editedData.title || 'Must-Do Experiences'}
+            </h3>
+            <p className="text-gray-600">
+              {editedData.description || 'Discover the best activities and experiences'}
+            </p>
+          </div>
+          
+          {/* Activities Preview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(editedData.activities || []).slice(0, 3).map((activity: any, index: number) => (
+              <div key={index} className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                    {activity.category || 'Experience'}
+                  </span>
+                  <span className="text-xs text-gray-500">⭐ {activity.rating || 4.5}</span>
+                </div>
+                <h4 className="font-semibold text-sm mb-2">{activity.title || 'Activity Title'}</h4>
+                <p className="text-xs text-gray-600 mb-2">{activity.description?.substring(0, 80) || 'Activity description...'}...</p>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>⏱️ {activity.duration || '3 hours'}</span>
+                  <span className="font-semibold text-blue-600">{activity.price || '€45'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {(!editedData.activities || editedData.activities.length === 0) && (
+            <div className="text-center py-8 text-gray-500">
+              <p>Add activities to see preview</p>
+            </div>
+          )}
+        </Card>
+      </div>
+    </div>
+  )
+
   const renderEditor = () => {
     switch (sectionType) {
       case 'hero':
@@ -1534,6 +2423,8 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
         return renderInternalLinksEditor()
       case 'hotels':
         return renderHotelsEditor()
+      case 'attractions':
+        return renderAttractionsEditor()
       default:
         return renderGenericEditor()
     }

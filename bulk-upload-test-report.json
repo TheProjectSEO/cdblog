@@ -1,0 +1,33 @@
+{
+  "summary": {
+    "totalTests": 3,
+    "passed": 1,
+    "failed": 2,
+    "warnings": 0,
+    "successRate": 33
+  },
+  "details": [
+    {
+      "name": "Page Navigation",
+      "status": "PASS",
+      "message": "Successfully navigated to bulk upload page",
+      "details": {},
+      "timestamp": "2025-08-05T21:27:52.904Z"
+    },
+    {
+      "name": "UI Elements Check",
+      "status": "FAIL",
+      "message": "Missing essential UI tabs",
+      "details": {},
+      "timestamp": "2025-08-05T21:27:52.916Z"
+    },
+    {
+      "name": "Template Selection",
+      "status": "FAIL",
+      "message": "Error selecting template: Waiting for selector `[data-value=\"upload\"]` failed: Waiting failed: 5000ms exceeded",
+      "details": {},
+      "timestamp": "2025-08-05T21:27:57.920Z"
+    }
+  ],
+  "timestamp": "2025-08-05T21:27:57.920Z"
+}
