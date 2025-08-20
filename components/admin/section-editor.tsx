@@ -656,18 +656,18 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
     
     const defaultAuthors = [
       {
-        id: 'sarah-johnson',
-        name: 'Sarah Johnson',
+        id: 'b04cb30f-ab32-44ec-96b4-71a2275693b0', // Use super admin UUID
+        name: 'Akash (Super Admin)',
         title: 'Travel Expert',
         bio: "Your friendly neighborhood travel obsessive who's been exploring the world for 10+ years. I'm all about finding those hidden gems and sharing the real tea on destinations - no sugar-coating, just honest vibes.",
         avatar_url: '/placeholder.svg',
         countries_explored: '50+ countries explored',
-        expert_since: 'Expert since 2014',
+        expert_since: 'Expert since 2024',
         followers: '1M+ fellow travelers',
         badges: ['Adventure seeker', 'Food lover', 'Culture enthusiast']
       },
       {
-        id: 'marco-rossi',
+        id: 'fae08818-e6b3-40de-8108-fbd227f6ae6c', // Use existing admin UUID
         name: 'Marco Rossi',
         title: 'Local Culture Specialist',
         bio: 'Born and raised in Rome, I spend my time uncovering the authentic experiences that make each destination unique. From secret family recipes to hidden historical gems.',

@@ -932,17 +932,50 @@ export default function AdminPage() {
         counter++
       }
       
-      // Try to get a valid author ID, fallback to a system default
-      let authorId = '6ab96e87-00db-44bd-ac5f-34a3dd8d457c'
+      // Get current user's author ID
+      let authorId = null
       
-      // First, try to find any existing author in the system
-      const { data: authors } = await supabase
-        .from('authors')
-        .select('id')
-        .limit(1)
+      // Get current authenticated user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        authorId = user.id
+        
+        // Ensure the user has an author record in modern_authors
+        const { data: existingAuthor } = await supabase
+          .from('modern_authors')
+          .select('id')
+          .eq('id', user.id)
+          .single()
+        
+        if (!existingAuthor) {
+          // Create author record if it doesn't exist
+          const { data: userProfile } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+          
+          if (userProfile) {
+            await supabase
+              .from('modern_authors')
+              .insert({
+                id: user.id,
+                email: userProfile.email,
+                username: userProfile.username,
+                display_name: userProfile.username,
+                first_name: userProfile.username.split('_')[0] || 'User',
+                last_name: 'Admin',
+                bio: 'Blog Author',
+                role: userProfile.role || 'author',
+                is_active: true
+              })
+          }
+        }
+      }
       
-      if (authors && authors.length > 0) {
-        authorId = authors[0].id
+      // Fallback to super admin if no user found
+      if (!authorId) {
+        authorId = 'b04cb30f-ab32-44ec-96b4-71a2275693b0' // akash@theprojectseo.com
       }
 
       const { data, error } = await supabase

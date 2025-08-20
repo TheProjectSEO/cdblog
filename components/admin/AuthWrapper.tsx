@@ -63,11 +63,11 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
           return
         }
 
-        if (profile && (profile.role === 'admin' || profile.role === 'moderator')) {
+        if (profile && (profile.role === 'admin' || profile.role === 'moderator' || profile.role === 'super_admin')) {
           setUserProfile(profile)
           setAuthError(null)
         } else {
-          setAuthError('Access denied. Admin or moderator privileges required.')
+          setAuthError('Access denied. Admin, moderator, or super admin privileges required.')
           await supabase.auth.signOut()
         }
       } else {
@@ -112,8 +112,8 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
           return
         }
 
-        if (profile.role !== 'admin' && profile.role !== 'moderator') {
-          setAuthError('Access denied. Admin or moderator privileges required.')
+        if (profile.role !== 'admin' && profile.role !== 'moderator' && profile.role !== 'super_admin') {
+          setAuthError('Access denied. Admin, moderator, or super admin privileges required.')
           await supabase.auth.signOut()
           return
         }
@@ -236,6 +236,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
             <div className="mt-6 text-center text-sm text-gray-600">
               <p className="mb-2">Available admin accounts:</p>
               <div className="bg-gray-50 p-3 rounded text-xs space-y-1">
+                <div className="font-semibold text-green-800">akash@theprojectseo.com (Super Admin) ⭐</div>
                 <div>admin@example.com (Admin)</div>
                 <div>akash@theslack.com (Admin)</div>
                 <div>mod@example.com (Moderator)</div>
