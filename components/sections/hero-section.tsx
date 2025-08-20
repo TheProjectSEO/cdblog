@@ -41,8 +41,8 @@ export function HeroSection({
   post,
   data
 }: HeroSectionProps) {
-  // Use data props if available, otherwise fall back to direct props
-  const finalTitle = data?.title || title || post?.title || "Amazing Destination"
+  // For blog posts, prioritize the actual post title over section title
+  const finalTitle = post?.title || data?.title || title || "Amazing Destination"
   const finalDescription = data?.subtitle || description || post?.excerpt || "Discover incredible experiences"
   const finalLocation = data?.location || location || "Destination"
   

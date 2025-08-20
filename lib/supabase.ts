@@ -2,8 +2,20 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Service role client for server-side operations (bypasses RLS)
+// Only create if service key is available (server-side only)
+export const supabaseAdmin = supabaseServiceKey 
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : null
 
 export interface BlogPost {
   id: string
@@ -223,7 +235,11 @@ export async function getModernPostBySlug(slug: string): Promise<ModernPost | nu
 // Fetch a single modern blog post by slug with sections (includes draft for preview)
 export async function getModernPostBySlugWithPreview(slug: string, allowDraft: boolean = false): Promise<ModernPost | null> {
   try {
-    let query = supabase
+    // Use admin client for preview functionality to bypass RLS policies
+    // Fall back to regular client if admin client is not available (client-side)
+    const client = (allowDraft && supabaseAdmin) ? supabaseAdmin : supabase
+    
+    let query = client
       .from('modern_posts')
       .select(`
         *,
@@ -249,8 +265,8 @@ export async function getModernPostBySlugWithPreview(slug: string, allowDraft: b
       return null
     }
 
-    // Get sections for the post
-    const { data: sectionsData, error: sectionsError } = await supabase
+    // Get sections for the post (use same client for consistency)
+    const { data: sectionsData, error: sectionsError } = await client
       .from('modern_post_sections')
       .select('*')
       .eq('post_id', postData.id)
