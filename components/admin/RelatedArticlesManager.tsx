@@ -65,16 +65,32 @@ export function RelatedArticlesManager({ postId, currentData, onSave }: RelatedA
   const fetchAllPosts = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      
+      // Fetch from modern_posts first
+      const { data: modernPosts, error: modernError } = await supabase
+        .from('modern_posts')
+        .select('id, title, slug, excerpt')
+        .neq('id', postId) // Exclude current post
+        .eq('status', 'published')
+        .order('created_at', { ascending: false })
+        .limit(25)
+
+      // Fetch from legacy posts table as fallback
+      const { data: legacyPosts, error: legacyError } = await supabase
         .from('posts')
         .select('id, title, slug, excerpt, featured_image')
         .neq('id', postId) // Exclude current post
         .eq('status', 'published')
         .order('created_at', { ascending: false })
-        .limit(50)
+        .limit(25)
 
-      if (error) throw error
-      setAllPosts(data || [])
+      // Combine both results
+      const allPosts = [
+        ...(modernPosts || []),
+        ...(legacyPosts || [])
+      ]
+
+      setAllPosts(allPosts)
     } catch (error) {
       console.error('Error fetching posts:', error)
       setError('Failed to load posts')
@@ -135,7 +151,7 @@ export function RelatedArticlesManager({ postId, currentData, onSave }: RelatedA
       title: post.title,
       description: post.excerpt || 'Discover more about this destination...',
       url: `/blog/${post.slug}`,
-      imageUrl: post.featured_image || '',
+      imageUrl: '', // Will be auto-fetched from hero section
       category: 'Travel Guide'
     })
   }
