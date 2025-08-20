@@ -104,24 +104,6 @@ export function AIItineraryCTA() {
           </p>
         </div>
 
-        {/* Testimonial */}
-        <div className="mt-12 text-center">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 max-w-2xl mx-auto">
-            <p className="text-white/90 italic mb-4 font-light">
-              "This AI literally planned my dream Europe trip in like 2 minutes. Every single recommendation was *chef's
-              kiss* perfect!"
-            </p>
-            <div className="flex items-center justify-center gap-3">
-              <div className="w-10 h-10 bg-brand-pink rounded-full flex items-center justify-center text-brand-deep-purple text-sm font-bold">
-                M
-              </div>
-              <div className="text-left">
-                <span className="text-sm font-medium text-white">Maria S.</span>
-                <div className="text-xs text-white/70">Verified traveler</div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   )

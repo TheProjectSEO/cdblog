@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent flash of unstyled content */
+html {
+  background: white;
+}
+
+body {
+  background: white;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -18,6 +27,8 @@
     scrollbar-width: none;  /* Firefox */
   }
 }
+
+/* Clean CSS - component fix applied directly */
 
 @layer base {
   :root {
@@ -97,32 +108,35 @@
     margin: 0;
     padding: 0;
   }
+  
+  html {
+    margin: 0;
+    padding: 0;
+  }
+  
   body {
     @apply bg-background text-foreground;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  html {
-    margin: 0 !important;
-    padding: 0 !important;
+    margin: 0;
+    padding: 0;
   }
   
-  /* Remove any default spacing from all elements */
-  #__next {
-    margin: 0 !important;
-    padding: 0 !important;
+  /* Ensure proper hero section positioning */
+  section:first-child {
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  /* Fix WhyChooseSection grid layout within prose content */
+  .prose .not-prose {
+    all: revert !important;
   }
   
-  /* Force hero section to start at absolute top */
-  section[class*="w-screen"] {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-    top: 0 !important;
+  /* Ensure grid layouts work properly within prose content */
+  .prose .not-prose[style*="display: grid"] {
+    display: grid !important;
   }
   
-  /* Ensure first section (hero) has no top spacing */
-  .min-h-screen > div:first-child {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
+  .prose .not-prose > div[style*="display: block"] {
+    display: block !important;
   }
 }

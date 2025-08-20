@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import LingoTranslationService from '@/lib/services/lingoTranslationService'
-import DirectGeminiTranslationService from '@/lib/services/directGeminiTranslationService'
+import { createClient } from '@supabase/supabase-js'
+import { TranslationService } from '@/lib/services/translationService'
+
+// Create admin client for accessing API keys table
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+)
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,29 +32,41 @@ export async function POST(request: NextRequest) {
       let testApiKey = apiKey
       
       if (!testApiKey) {
-        // Try to get Google API key from environment
-        if (process.env.GOOGLE_API_KEY) {
-          testApiKey = process.env.GOOGLE_API_KEY
+        // Try to get Google Translate API key from database
+        const { data: storedApiKey, error: keyError } = await supabaseAdmin
+          .from('api_keys')
+          .select('key_value')
+          .eq('service', 'google_translate')
+          .eq('is_active', true)
+          .single()
+        
+        if (storedApiKey) {
+          testApiKey = storedApiKey.key_value
+        } else if (process.env.GOOGLE_TRANSLATE_API_KEY) {
+          testApiKey = process.env.GOOGLE_TRANSLATE_API_KEY
         }
       }
       
       if (!testApiKey) {
         return NextResponse.json({
           success: false,
-          error: 'No Google API key available - please set GOOGLE_API_KEY environment variable',
+          error: 'No Google Translate API key available - please set GOOGLE_TRANSLATE_API_KEY environment variable or configure in database',
           apiKeyProvided: false
         })
       }
       
       try {
-        // Use direct Google Gemini service for better reliability
-        const testService = new DirectGeminiTranslationService(testApiKey)
-        const testResult = await testService.testConnection()
+        // Use Google Translate service for testing
+        const testService = new TranslationService(testApiKey)
+        const testResult = await testService.translateText({
+          text: 'Hello, world!',
+          targetLanguage: 'es'
+        })
         
         if (testResult.success) {
           return NextResponse.json({
             success: true,
-            message: testResult.message,
+            message: 'Google Translate API connection successful',
             postId,
             targetLanguage,
             apiKeyProvided: true
@@ -50,48 +74,48 @@ export async function POST(request: NextRequest) {
         } else {
           return NextResponse.json({
             success: false,
-            error: testResult.message,
+            error: testResult.error || 'Google Translate API test failed',
             apiKeyProvided: true
           })
         }
       } catch (error) {
         return NextResponse.json({
           success: false,
-          error: 'Google Gemini API key test failed - invalid key or service unavailable',
+          error: 'Google Translate API key test failed - invalid key or service unavailable',
           apiKeyProvided: true
         })
       }
     }
 
-    // Get Google API key from database or environment if not provided
+    // Get Google Translate API key from database or environment if not provided
     let finalApiKey = apiKey
     
     if (!finalApiKey) {
-      // Try to get Google API key from database
-      const { data: storedApiKey } = await supabase
+      // Try to get Google Translate API key from database
+      const { data: storedApiKey, error: keyError } = await supabaseAdmin
         .from('api_keys')
         .select('key_value')
-        .eq('service', 'google')
+        .eq('service', 'google_translate')
         .eq('is_active', true)
         .single()
       
       if (storedApiKey) {
         finalApiKey = storedApiKey.key_value
-      } else if (process.env.GOOGLE_API_KEY) {
-        finalApiKey = process.env.GOOGLE_API_KEY
+      } else if (process.env.GOOGLE_TRANSLATE_API_KEY) {
+        finalApiKey = process.env.GOOGLE_TRANSLATE_API_KEY
       }
     }
 
-    // Initialize translation service with Google API key
+    // Initialize Google Translate service
     if (!finalApiKey) {
       return NextResponse.json(
-        { error: 'Google API key is required. Please set GOOGLE_API_KEY environment variable.' },
+        { error: 'Google Translate API key is required. Please set GOOGLE_TRANSLATE_API_KEY environment variable or configure in database.' },
         { status: 400 }
       )
     }
 
-    // Use direct Google Gemini service for better reliability and no Lingo.dev dependency
-    const translationService = new DirectGeminiTranslationService(finalApiKey)
+    // Use Google Translate service for JSON-based translation
+    const translationService = new TranslationService(finalApiKey)
 
     // Fetch the original post with all related data
     const { data: post, error: postError } = await supabase
@@ -167,7 +191,7 @@ export async function POST(request: NextRequest) {
           translated_title: 'Translating...',
           translated_slug: translatedSlug,
           translation_status: 'translating',
-          translation_service: 'direct_google_gemini'
+          translation_service: 'google_translate'
         })
         .select('id')
         .single()

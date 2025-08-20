@@ -647,7 +647,7 @@ export function HotelCarousel({
     : getHotelsForDestination(destination)
 
   return (
-    <section className="bg-white rounded-2xl shadow-lg p-8">
+    <section className="bg-white rounded-2xl shadow-lg p-8 overflow-hidden relative">
       <div className="text-center mb-8">
         <h2 className="text-4xl font-bold text-gray-900 mb-4 font-sans">{title}</h2>
         <p className="text-lg text-gray-600 max-w-3xl mx-auto font-light">
@@ -657,16 +657,23 @@ export function HotelCarousel({
 
       <Carousel 
         className="w-full"
+        opts={{
+          align: "start",
+          loop: true,
+          skipSnaps: false,
+          dragFree: true,
+          containScroll: "trimSnaps",
+        }}
         plugins={[
           Autoplay({
-            delay: 5000,
+            delay: 6000,
             stopOnInteraction: true,
           }),
         ]}
       >
-        <CarouselContent className="-ml-2 md:-ml-4">
+        <CarouselContent className="-ml-2 md:-ml-4 pr-16">
           {hotels.map((hotel) => (
-            <CarouselItem key={hotel.id} className="pl-2 md:pl-4 basis-full md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+            <CarouselItem key={hotel.id} className="pl-2 md:pl-4 basis-[85%] sm:basis-[80%] md:basis-[45%] lg:basis-[38%] xl:basis-[32%]">
               <Card className="overflow-hidden hover:shadow-lg transition-shadow rounded-2xl h-full bg-gradient-to-br from-white to-gray-50">
                 <div className="relative">
                   <img
@@ -721,9 +728,24 @@ export function HotelCarousel({
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="left-4" />
-        <CarouselNext className="right-4" />
+        <CarouselPrevious className="left-4 bg-white/90 hover:bg-white shadow-lg border-gray-200" />
+        <CarouselNext className="right-4 bg-white/90 hover:bg-white shadow-lg border-gray-200" />
       </Carousel>
+      
+      {/* Subtle gradient fade on right to indicate more content */}
+      <div className="absolute right-8 top-16 bottom-16 w-12 bg-gradient-to-l from-white via-white/80 to-transparent pointer-events-none z-10 hidden md:block opacity-60" />
+      
+      {/* Scroll indicator */}
+      <div className="flex justify-center items-center mt-4 gap-2 text-sm text-gray-500">
+        <div className="flex gap-1">
+          <div className="w-2 h-2 rounded-full bg-brand-purple"></div>
+          <div className="w-2 h-2 rounded-full bg-gray-200"></div>
+          <div className="w-2 h-2 rounded-full bg-gray-200"></div>
+          <div className="w-2 h-2 rounded-full bg-gray-200"></div>
+        </div>
+        <span className="ml-2 hidden sm:inline">Swipe or use arrows to explore more</span>
+        <span className="ml-2 sm:hidden">Swipe to explore more</span>
+      </div>
     </section>
   )
 }

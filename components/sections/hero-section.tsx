@@ -48,10 +48,10 @@ export function HeroSection({
   
   // Enhanced customization options
   const badges = data?.badges || {
-    main: { text: '🏔️ Your travel adventure starts here', show: true },
+    main: { text: '🏔️ Your travel adventure starts here', show: false },
     location: { show: true },
-    calendar: { text: 'Perfect year-round', show: true },
-    users: { text: 'For every traveler', show: true },
+    calendar: { text: 'Perfect year-round', show: false },
+    users: { text: 'For every traveler', show: false },
     rating: { text: '4.9/5 from travelers', show: true },
     author: { show: true }
   }
@@ -68,7 +68,7 @@ export function HeroSection({
   
   const bottomText = data?.bottomText || {
     text: '🎁 Free to use • No signup required • Personalized just for you',
-    show: true
+    show: false
   }
   
   // Helper function to get text size classes
@@ -170,7 +170,8 @@ export function HeroSection({
         left: '50%',
         right: '50%',
         marginLeft: '-50vw',
-        marginRight: '-50vw'
+        marginRight: '-50vw',
+        marginBottom: '0'
       }}
     >
       {/* Full-width hero image background */}
@@ -186,9 +187,8 @@ export function HeroSection({
             objectPosition: 'center'
           }}
         />
-        {/* Enhanced gradient overlays for better text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50"></div>
+        {/* Light overlay for subtle text readability - removed heavy dark overlays */}
+        <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
       {/* Back to Blog Button - Top Left */}

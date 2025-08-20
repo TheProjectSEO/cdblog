@@ -1,6 +1,7 @@
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { LogoImage } from "@/components/LogoImage"
 import { Footer } from "@/components/footer"
+import { HotelCarousel } from "@/components/hotel-carousel"
 
 export default function TestComponents() {
   return (
@@ -22,6 +23,15 @@ export default function TestComponents() {
           currentLanguage="en"
           postSlug="test-slug"
           availableTranslations={[]}
+        />
+      </div>
+
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-2">Hotel Carousel Test (2 Full + 1 Peeking):</h2>
+        <HotelCarousel 
+          title="Where to Stay in Italian Lakes"
+          description="Discover beautiful accommodations with lake views and luxury amenities"
+          destination="Italian Lakes"
         />
       </div>
 

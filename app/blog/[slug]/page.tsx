@@ -161,9 +161,9 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
           post={post}
         />
       ) : (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-white" style={{ backgroundColor: 'white' }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="bg-white rounded-lg shadow-sm border p-8">
+            <div className="bg-white rounded-lg shadow-sm border p-8" style={{ backgroundColor: 'white' }}>
               <div className="text-center py-12 text-gray-500">
                 <h1 className="text-3xl font-bold text-gray-900 mb-4">{post.title}</h1>
                 <p className="text-lg mb-6">{post.excerpt}</p>

@@ -702,17 +702,21 @@ export function ThingsToDoCards({ destination = '', title: customTitle, descript
       </div>
 
       <Carousel 
-        className="w-full"
+        className="w-full px-4 md:px-6 lg:px-8"
         plugins={[
           Autoplay({
             delay: 4000,
             stopOnInteraction: true,
           }),
         ]}
+        opts={{
+          align: "start",
+          loop: true,
+        }}
       >
-        <CarouselContent className="-ml-2 md:-ml-4">
+        <CarouselContent className="-ml-2 md:-ml-4 pr-16">
           {activities.map((activity) => (
-            <CarouselItem key={activity.id} className="pl-2 md:pl-4 basis-1/4">
+            <CarouselItem key={activity.id} className="pl-2 md:pl-4 basis-[85%] sm:basis-[80%] md:basis-[45%] lg:basis-[38%] xl:basis-[32%]">
               <Card className="overflow-hidden hover:shadow-lg transition-shadow rounded-2xl h-full">
                 <div className="relative">
                   <img

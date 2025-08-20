@@ -4,11 +4,8 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { 
   Languages, 
   Globe, 
@@ -16,7 +13,6 @@ import {
   Clock, 
   AlertTriangle, 
   ExternalLink,
-  Settings,
   Loader2,
   Edit,
   Trash2,
@@ -58,7 +54,6 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
   const [translations, setTranslations] = useState<TranslationWithSections[]>([])
   const [loading, setLoading] = useState(false)
   const [translating, setTranslating] = useState<string | null>(null)
-  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false)
   const [apiKey, setApiKey] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [editingTranslation, setEditingTranslation] = useState<string | null>(null)
@@ -73,7 +68,7 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
 
   const checkApiKeyAvailability = async () => {
     try {
-      // Check environment variable or database for Lingo.dev API key
+      // Check environment variable or database for Google Translate API key
       const response = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,14 +81,14 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
       const result = await response.json()
       
       if (result.success && result.apiKeyProvided) {
-        setApiKey('available') // Set a flag to indicate Lingo.dev API key is available
+        setApiKey('available') // Set a flag to indicate Google Translate API key is available
         setError(null) // Clear any previous errors
       } else {
-        setError(result.error || 'Lingo.dev API key not found')
+        setError(result.error || 'Google Translate API key not found')
       }
     } catch (error) {
-      console.log('Lingo.dev API key check failed:', error)
-      setError('Failed to check Lingo.dev API key')
+      console.log('Google Translate API key check failed:', error)
+      setError('Failed to check Google Translate API key')
     }
   }
 
@@ -151,7 +146,6 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
         body: JSON.stringify({
           postId,
           targetLanguage: languageCode,
-          apiKey: apiKey === 'available' ? undefined : apiKey.trim(),
           forceCompleteTranslation: true, // Add flag to ensure complete section-by-section translation
           includeUITranslation: true // Also translate UI elements
         })
@@ -263,43 +257,10 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
         <div className="flex items-center gap-2">
           <Globe className="h-4 w-4 text-blue-600" />
           <span className="text-sm font-medium">Translation Service:</span>
-          <Badge variant="outline">Lingo.dev AI Translation</Badge>
-          <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                {apiKey ? 'Update Lingo.dev Key' : 'Set Lingo.dev Key'}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Lingo.dev API Key</DialogTitle>
-                <DialogDescription>
-                  Enter your Lingo.dev API key to enable AI-powered translations.
-                  Sign up for free at https://lingo.dev (10,000 words/month included).
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>API Key</Label>
-                  <Input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter your Lingo.dev API key (api_...)"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={() => setShowApiKeyDialog(false)} className="flex-1">
-                    Save API Key
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowApiKeyDialog(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Badge variant="outline">Google Translate API</Badge>
+          <Badge variant={apiKey === 'available' ? 'default' : 'secondary'}>
+            {apiKey === 'available' ? '✅ Configured' : '⚠️ Not Configured'}
+          </Badge>
         </div>
 
         {/* Test Translation API */}
@@ -314,8 +275,7 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
                   body: JSON.stringify({
                     postId,
                     targetLanguage: 'de',
-                    testMode: true,
-                    apiKey: apiKey === 'available' ? undefined : apiKey.trim()
+                    testMode: true
                   })
                 })
                 const result = await response.json()
@@ -479,14 +439,14 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
         <Alert>
           <Globe className="h-4 w-4" />
           <AlertDescription>
-            <strong>Lingo.dev AI Translation System:</strong>
+            <strong>Google Translate API System:</strong>
             <ul className="mt-2 space-y-1 text-sm">
-              <li>• 🤖 <strong>AI-Powered:</strong> Context-aware translations using advanced language models</li>
-              <li>• 🆓 <strong>Free Tier:</strong> 10,000 words per month included at no cost</li>
+              <li>• 🔑 <strong>Auto-Configured:</strong> API key automatically loaded from database or environment variables</li>
+              <li>• 🌐 <strong>Reliable:</strong> Professional-grade translations using Google's neural machine translation</li>
+              <li>• 📋 <strong>JSON-Based:</strong> Structured translation of buttons, CTAs, and main content</li>
               <li>• 🎯 <strong>Section-by-Section:</strong> Each content section is individually translated for accuracy</li>
               <li>• 🌐 Each language creates a separate URL (e.g., /blog/post-title/es)</li>
               <li>• ✏️ Review and edit translations for accuracy and cultural context</li>
-              <li>• 🏷️ Translates titles, descriptions, SEO metadata and all content</li>
             </ul>
           </AlertDescription>
         </Alert>

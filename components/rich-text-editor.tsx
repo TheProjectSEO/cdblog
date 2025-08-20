@@ -2,6 +2,28 @@ interface RichTextEditorProps {
   content?: string
 }
 
+function addIdsToHeadings(html: string): string {
+  // Function to convert heading text to ID
+  const textToId = (text: string): string => {
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .trim()
+  }
+
+  // Add IDs to h2 and h3 headings
+  return html
+    .replace(/<h2>([^<]+)<\/h2>/g, (match, text) => {
+      const id = textToId(text)
+      return `<h2 id="${id}">${text}</h2>`
+    })
+    .replace(/<h3>([^<]+)<\/h3>/g, (match, text) => {
+      const id = textToId(text)
+      return `<h3 id="${id}">${text}</h3>`
+    })
+}
+
 export function RichTextEditor({ content }: RichTextEditorProps) {
   const defaultContent = `
     <h2>Discovering the Magic of Montmartre</h2>
@@ -32,11 +54,24 @@ export function RichTextEditor({ content }: RichTextEditorProps) {
     <p><em>Pro tip:</em> Skip the touristy restaurants around Place du Tertre and venture into the side streets for authentic bistros where locals actually eat. Try <strong>La Petit Montmartre</strong> for the best coq au vin in the area.</p>
   `
 
+  const processedContent = addIdsToHeadings(content || defaultContent)
+  
+  // Debug logging
+  if (typeof window !== 'undefined' && content) {
+    console.log('RichTextEditor processing content with headings:', {
+      hasContent: !!content,
+      contentLength: content.length,
+      hasH2: content.includes('<h2'),
+      hasH3: content.includes('<h3'),
+      processedLength: processedContent?.length
+    })
+  }
+
   return (
-    <section className="bg-white rounded-2xl shadow-lg p-8">
+    <section className="px-8 py-4">
       <div 
         className="prose prose-lg max-w-none"
-        dangerouslySetInnerHTML={{ __html: content || defaultContent }}
+        dangerouslySetInnerHTML={{ __html: processedContent }}
       />
     </section>
   )

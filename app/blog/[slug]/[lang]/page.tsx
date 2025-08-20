@@ -301,8 +301,8 @@ export default async function TranslatedPostPage({ params }: PageProps) {
       }
       
       // Restore proper template mapping based on data content
-      let templateName = 'rich-text-editor'
-      let componentName = 'RichTextEditor'
+      let templateName = 'rich-text-content'
+      let componentName = 'RichTextContent'
       
       if (index === 0) {
         templateName = 'hero-section'

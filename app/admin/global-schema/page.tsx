@@ -82,20 +82,6 @@ const HOMEPAGE_SECTIONS = [
     }
   },
   { 
-    key: 'testimonials', 
-    name: 'Reviews & Ratings', 
-    description: 'Schema for customer reviews and ratings',
-    type: 'AggregateRating',
-    template: {
-      "@context": "https://schema.org",
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "250",
-      "bestRating": "5",
-      "worstRating": "1"
-    }
-  },
-  { 
     key: 'breadcrumb', 
     name: 'Breadcrumb Navigation', 
     description: 'Schema for site navigation breadcrumbs',

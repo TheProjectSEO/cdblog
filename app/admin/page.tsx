@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { AuthWrapper } from '@/components/admin/AuthWrapper'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,7 +39,6 @@ import {
   Link,
   Globe,
   BarChart,
-  MessageSquare,
   Award,
   Database,
   ImageIcon,
@@ -47,6 +47,7 @@ import {
   EyeOff
 } from 'lucide-react'
 import { supabase, publishPost } from '@/lib/supabase'
+import { CategoryManager } from '@/components/admin/CategoryManager'
 import { searchPostsWithTranslations } from '@/lib/supabase_translation_search'
 import { SectionEditor } from '@/components/admin/section-editor'
 import { TranslationManager } from '@/components/admin/TranslationManager'
@@ -220,6 +221,7 @@ export default function AdminPage() {
   const [posts, setPosts] = useState<ModernPost[]>([])
   const [totalPostCount, setTotalPostCount] = useState(0)
   const [selectedPost, setSelectedPost] = useState<ModernPost | null>(null)
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -299,12 +301,6 @@ export default function AdminPage() {
       label: 'Categories',
       icon: Database,
       view: 'categories'
-    },
-    {
-      id: 'testimonials',
-      label: 'Testimonials',
-      icon: MessageSquare,
-      view: 'testimonials'
     },
     {
       id: 'homepage',
@@ -421,12 +417,83 @@ export default function AdminPage() {
       
       // Update selectedPost with full data
       setSelectedPost(postData)
+
+      // Load post categories
+      try {
+        const { data: postCategoriesData, error: categoriesError } = await supabase
+          .from('modern_post_categories')
+          .select('category_id')
+          .eq('post_id', postId)
+
+        if (categoriesError) {
+          console.error('Error loading post categories:', categoriesError)
+        } else {
+          const categoryIds = (postCategoriesData || []).map(pc => pc.category_id)
+          setSelectedCategoryIds(categoryIds)
+        }
+      } catch (categoriesError) {
+        console.error('Error loading categories:', categoriesError)
+        setSelectedCategoryIds([])
+      }
       
     } catch (error) {
       console.error('Error loading post details:', error)
       setSections([])
+      setSelectedCategoryIds([])
     } finally {
       setLoadingSections(false)
+    }
+  }
+
+  const savePostCategories = async (postId: string, categoryIds: string[]) => {
+    try {
+      // First, remove existing categories
+      const { error: deleteError } = await supabase
+        .from('modern_post_categories')
+        .delete()
+        .eq('post_id', postId)
+
+      if (deleteError) {
+        console.error('Error deleting existing categories:', deleteError)
+        throw deleteError
+      }
+
+      // Then, add new categories
+      if (categoryIds.length > 0) {
+        const categoryData = categoryIds.map(categoryId => ({
+          post_id: postId,
+          category_id: categoryId
+        }))
+
+        const { error: insertError } = await supabase
+          .from('modern_post_categories')
+          .insert(categoryData)
+
+        if (insertError) {
+          console.error('Error inserting categories:', insertError)
+          throw insertError
+        }
+      }
+
+      console.log('Successfully saved post categories')
+    } catch (error) {
+      console.error('Error saving post categories:', error)
+      throw error
+    }
+  }
+
+  const handleCategoryChange = (categoryIds: string[]) => {
+    setSelectedCategoryIds(categoryIds)
+    
+    // Auto-save categories if we have a selected post
+    if (selectedPost) {
+      savePostCategories(selectedPost.id, categoryIds)
+        .then(() => {
+          console.log('Categories auto-saved successfully')
+        })
+        .catch(error => {
+          console.error('Failed to auto-save categories:', error)
+        })
     }
   }
 
@@ -1240,7 +1307,8 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex">
+    <AuthWrapper>
+      <div className="min-h-screen bg-[#f5f5f5] flex">
       {/* Sidebar */}
       <div className="w-64 bg-[#0e0e0e] shadow-xl border-r border-white/10 flex flex-col">
         {/* Header */}
@@ -1632,8 +1700,24 @@ export default function AdminPage() {
               </Card>
             </div>
           )}
-          {currentView === 'categories' && renderPlaceholderView('Categories', 'Manage content categories', Database)}
-          {currentView === 'testimonials' && renderPlaceholderView('Testimonials', 'Manage customer testimonials', MessageSquare)}
+          {currentView === 'categories' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
+                  <p className="text-gray-600">Manage content categories for organizing blog posts</p>
+                </div>
+              </div>
+              
+              <Card>
+                <CardContent className="p-6">
+                  <CategoryManager
+                    showTitle={false}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
           {currentView === 'homepage' && (
             <div>
               <div className="mb-6">
@@ -1734,6 +1818,7 @@ export default function AdminPage() {
                       setCurrentView('travel-guide')
                       setSelectedPost(null)
                       setSections([])
+                      setSelectedCategoryIds([])
                     }}
                     className="flex items-center gap-2"
                   >
@@ -1933,6 +2018,16 @@ export default function AdminPage() {
                               }
                             }}
                             placeholder="SEO meta description..."
+                          />
+                        </div>
+
+                        {/* Categories */}
+                        <div>
+                          <CategoryManager
+                            postId={selectedPost?.id}
+                            selectedCategoryIds={selectedCategoryIds}
+                            onCategoryChange={handleCategoryChange}
+                            showTitle={true}
                           />
                         </div>
                         
@@ -2198,7 +2293,7 @@ export default function AdminPage() {
           )}
           
           {/* Fallback for unknown views */}
-          {!['dashboard', 'travel-guide', 'internal-links', 'url-redirects', 'robots-txt', 'categories', 'testimonials', 'homepage', 'image-generator', 'translations', 'post-editor', 'manage-articles'].includes(currentView) && (
+          {!['dashboard', 'travel-guide', 'internal-links', 'url-redirects', 'robots-txt', 'categories', 'homepage', 'image-generator', 'translations', 'post-editor', 'manage-articles'].includes(currentView) && (
             <div className="space-y-6">
               <Card className="bg-yellow-50 border-yellow-200">
                 <CardContent className="p-6 text-center">
@@ -2419,5 +2514,6 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </AuthWrapper>
   )
 }
