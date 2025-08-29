@@ -171,9 +171,7 @@ export async function getModernPostBySlug(slug: string): Promise<ModernPost | nu
       .from('modern_posts')
       .select(`
         *,
-        modern_authors(*),
-        featured_image:modern_media!featured_image_id(file_url),
-        og_image:modern_media!og_image_id(file_url)
+        modern_authors(*)
       `)
       .eq('slug', slug)
       .eq('status', 'published')
@@ -220,8 +218,8 @@ export async function getModernPostBySlug(slug: string): Promise<ModernPost | nu
       blog_authors: postData.modern_authors, // Keep for backward compatibility
       categories: [],
       sections: transformedSections,
-      featured_image_url: postData.featured_image?.file_url || null,
-      og_image: postData.og_image,
+      featured_image_url: postData.og_image || null,
+      og_image: postData.og_image ? { file_url: postData.og_image } : null,
       published_at: postData.published_at || postData.created_at
     }
 
@@ -243,9 +241,7 @@ export async function getModernPostBySlugWithPreview(slug: string, allowDraft: b
       .from('modern_posts')
       .select(`
         *,
-        modern_authors(*),
-        featured_image:modern_media!featured_image_id(file_url),
-        og_image:modern_media!og_image_id(file_url)
+        modern_authors(*)
       `)
       .eq('slug', slug)
 
@@ -281,7 +277,8 @@ export async function getModernPostBySlugWithPreview(slug: string, allowDraft: b
     const transformedPost: ModernPost = {
       ...postData,
       sections: sectionsData || [],
-      author: postData.modern_authors || null
+      author: postData.modern_authors || null,
+      og_image: postData.og_image ? { file_url: postData.og_image } : null
     }
 
     return transformedPost
@@ -327,7 +324,8 @@ export async function getRecentPosts(limit: number = 8) {
       excerpt,
       published_at,
       reading_time,
-      created_at
+      created_at,
+      og_image
     `)
     .eq('status', 'published')
     .order('published_at', { ascending: false })
@@ -338,9 +336,18 @@ export async function getRecentPosts(limit: number = 8) {
     return []
   }
 
-  // Get hero images from the first section of each post
+  // Transform posts to use og_image as featured_image, with fallback to hero images
   const postsWithImages = await Promise.all(
     (posts || []).map(async (post) => {
+      // If post has og_image, use it
+      if (post.og_image) {
+        return {
+          ...post,
+          featured_image: { file_url: post.og_image }
+        }
+      }
+      
+      // Fallback: try to get image from hero section for posts without og_image
       try {
         const { data: heroSection } = await supabase
           .from('modern_post_sections')
@@ -366,6 +373,16 @@ export async function getRecentPosts(limit: number = 8) {
     })
   )
 
+  console.log('getRecentPosts debug:', {
+    totalPosts: postsWithImages.length,
+    first3Posts: postsWithImages.slice(0, 3).map(post => ({
+      id: post.id,
+      title: post.title,
+      og_image: post.og_image,
+      featured_image: post.featured_image
+    }))
+  })
+
   return postsWithImages
 }
 
@@ -382,8 +399,7 @@ export async function getFeaturedPosts(limit: number = 6) {
       reading_time,
       is_featured,
       created_at,
-      featured_image_id,
-      featured_image:modern_media!featured_image_id(file_url, alt_text)
+      og_image
     `)
     .eq('status', 'published')
     .eq('is_featured', true)
@@ -395,18 +411,18 @@ export async function getFeaturedPosts(limit: number = 6) {
     return []
   }
   
-  // If no featured_image from modern_media, fallback to hero section images
+  // Transform posts to use og_image as featured_image, with fallback to hero images
   const postsWithImages = await Promise.all(
     (posts || []).map(async (post) => {
-      // If we already have a featured image from modern_media, use it
-      if (post.featured_image?.file_url) {
+      // If post has og_image, use it
+      if (post.og_image) {
         return {
           ...post,
-          featured_image: post.featured_image
+          featured_image: { file_url: post.og_image }
         }
       }
       
-      // Fallback: try to get image from hero section
+      // Fallback: try to get image from hero section for posts without og_image
       try {
         const { data: heroSection } = await supabase
           .from('modern_post_sections')
@@ -448,7 +464,8 @@ export async function searchPostsByCategory(category: string, limit: number = 20
       excerpt,
       published_at,
       reading_time,
-      created_at
+      created_at,
+      og_image
     `)
     .eq('status', 'published')
     .or(`title.ilike.%${category}%,excerpt.ilike.%${category}%`)
@@ -460,38 +477,11 @@ export async function searchPostsByCategory(category: string, limit: number = 20
     return []
   }
   
-  // Get hero images from the first section of each post
-  const postsWithImages = await Promise.all(
-    (posts || []).map(async (post) => {
-      try {
-        const { data: heroSection } = await supabase
-          .from('modern_sections')
-          .select(`
-            data
-          `)
-          .eq('post_id', post.id)
-          .eq('template_id', 'hero')
-          .order('position', { ascending: true })
-          .limit(1)
-          .single()
-
-        let featured_image = null
-        if (heroSection?.data?.background?.image?.file_url) {
-          featured_image = { file_url: heroSection.data.background.image.file_url }
-        }
-
-        return {
-          ...post,
-          featured_image
-        }
-      } catch (error) {
-        return {
-          ...post,
-          featured_image: null
-        }
-      }
-    })
-  )
+  // Transform posts to use og_image as featured_image
+  const postsWithImages = (posts || []).map((post) => ({
+    ...post,
+    featured_image: post.og_image ? { file_url: post.og_image } : null
+  }))
   
   return postsWithImages
 }
@@ -641,7 +631,8 @@ export async function searchPosts(query: string, limit: number = 20) {
       reading_time,
       created_at,
       meta_title,
-      meta_description
+      meta_description,
+      og_image
     `)
     .eq('status', 'published')
     .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,meta_title.ilike.%${query}%,meta_description.ilike.%${query}%`)
@@ -653,33 +644,11 @@ export async function searchPosts(query: string, limit: number = 20) {
     return []
   }
 
-  // Get hero images from the first section of each post
-  const postsWithImages = await Promise.all(
-    (posts || []).map(async (post) => {
-      try {
-        const { data: heroSection } = await supabase
-          .from('modern_post_sections')
-          .select('data')
-          .eq('post_id', post.id)
-          .eq('template_id', '6f579a71-463c-43b4-b203-c2cb46c80d47') // Hero section template ID
-          .eq('position', 0)
-          .maybeSingle()
-
-        const heroImage = heroSection?.data?.backgroundImage
-        
-        return {
-          ...post,
-          featured_image: heroImage ? { file_url: heroImage } : null
-        }
-      } catch (err) {
-        // If no hero section found, return post without image
-        return {
-          ...post,
-          featured_image: null
-        }
-      }
-    })
-  )
+  // Transform posts to use og_image as featured_image
+  const postsWithImages = (posts || []).map((post) => ({
+    ...post,
+    featured_image: post.og_image ? { file_url: post.og_image } : null
+  }))
 
   return postsWithImages
 }

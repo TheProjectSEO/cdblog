@@ -8,6 +8,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['img.youtube.com'],
   },
   webpack: (config, { isServer }) => {
     // Handle lingo.dev SDK which contains Node.js modules

@@ -1,22 +1,19 @@
-import { Button } from "@/components/ui/button"
 import { getRecentPosts, getPostsCount, getPopularCategories, getFeaturedPosts } from "@/lib/supabase"
-import { KlookStyleBlog } from "@/components/klook-style-blog"
-import { Footer } from "@/components/footer"
-import { getLogoSettings } from "@/lib/logo-settings"
+import { BlogHomepage } from "@/components/blog-homepage"
 
 // Default categories if database is empty
 const defaultCategories = [
   "Nightlife", "Food", "Adventure", "Beaches", "Culture", "Hiking", "City Guides", "Hidden Gems"
 ]
 
-// Metadata for blog listing page
+// Metadata for blog homepage
 export const metadata = {
-  title: 'Travel Blog | CuddlyNest - Discover Amazing Destinations',
-  description: 'Explore our comprehensive travel guides, destination tips, and insider recommendations. Find inspiration for your next adventure with CuddlyNest.',
+  title: 'Travel Blog | CuddlyNest - Articles, Tips and Tricks',
+  description: 'Articles, tips and tricks for travelers & property owners. Discover amazing destinations and travel guides.',
   keywords: 'travel blog, travel guides, destination guides, travel tips, vacation planning, travel inspiration',
   openGraph: {
-    title: 'Travel Blog | CuddlyNest - Discover Amazing Destinations',
-    description: 'Explore our comprehensive travel guides, destination tips, and insider recommendations. Find inspiration for your next adventure with CuddlyNest.',
+    title: 'Travel Blog | CuddlyNest - Articles, Tips and Tricks',
+    description: 'Articles, tips and tricks for travelers & property owners. Discover amazing destinations and travel guides.',
     type: 'website',
     siteName: 'CuddlyNest',
     locale: 'en_US',
@@ -24,8 +21,8 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     site: '@cuddlynest',
-    title: 'Travel Blog | CuddlyNest - Discover Amazing Destinations',
-    description: 'Explore our comprehensive travel guides, destination tips, and insider recommendations.',
+    title: 'Travel Blog | CuddlyNest - Articles, Tips and Tricks',
+    description: 'Articles, tips and tricks for travelers & property owners.',
   },
   alternates: {
     canonical: 'https://cuddlynest.com/blog',
@@ -45,12 +42,11 @@ export const metadata = {
 
 export default async function BlogPage() {
   // Fetch real data from database
-  const [recentPosts, featuredPosts, totalPosts, categories, logoSettings] = await Promise.all([
+  const [recentPosts, featuredPosts, totalPosts, categories] = await Promise.all([
     getRecentPosts(12),
     getFeaturedPosts(6),
     getPostsCount(),
-    getPopularCategories(8),
-    getLogoSettings()
+    getPopularCategories(8)
   ])
 
   const displayCategories = categories.length > 0 
@@ -58,16 +54,11 @@ export default async function BlogPage() {
     : defaultCategories
 
   return (
-    <div className="min-h-screen">
-      <KlookStyleBlog 
-        recentPosts={recentPosts}
-        featuredPosts={featuredPosts || recentPosts.slice(0, 6)}
-        totalPosts={totalPosts}
-        categories={displayCategories}
-        additionalCategories={defaultCategories}
-        blogLogo={logoSettings.blog_logo}
-      />
-      <Footer />
-    </div>
+    <BlogHomepage 
+      recentPosts={recentPosts}
+      featuredPosts={featuredPosts || recentPosts.slice(0, 6)}
+      totalPosts={totalPosts}
+      categories={displayCategories}
+    />
   )
 }

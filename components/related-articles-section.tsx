@@ -3,8 +3,7 @@
 import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useMemo } from 'react'
 
 interface RelatedArticle {
   id?: string | number
@@ -30,11 +29,9 @@ export function RelatedArticlesSection({ data }: RelatedArticlesSectionProps) {
   const { title = "Related Articles", articles, links } = data
   // Support both articles and links for backward compatibility
   const articlesArray = articles || links || []
-  const [enhancedArticles, setEnhancedArticles] = useState<RelatedArticle[]>([])
-  const [loading, setLoading] = useState(true)
 
-  // Default articles if none provided
-  const defaultArticles = [
+  // Default articles if none provided - properly memoized
+  const defaultArticles = useMemo(() => [
     {
       id: 1,
       title: "Best European City Breaks",
@@ -59,83 +56,23 @@ export function RelatedArticlesSection({ data }: RelatedArticlesSectionProps) {
       imageUrl: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2020&auto=format&fit=crop",
       category: "Travel Guide"
     }
-  ]
+  ], [])
 
-  const articlesToShow = articlesArray && articlesArray.length > 0 ? articlesArray.slice(0, 3) : defaultArticles
+  // Memoize articles to show to prevent unnecessary re-renders
+  const articlesToShow = useMemo(() => 
+    articlesArray && articlesArray.length > 0 ? articlesArray.slice(0, 3) : defaultArticles
+  , [articlesArray, defaultArticles])
 
-  // Function to extract slug from URL
-  const extractSlugFromUrl = (url: string): string | null => {
-    if (url.startsWith('/blog/')) {
-      return url.replace('/blog/', '')
-    }
-    return null
-  }
+  // Final articles with images - completely stable
+  const enhancedArticles = useMemo(() => 
+    articlesToShow.map(article => ({
+      ...article,
+      heroImageUrl: article.imageUrl
+    }))
+  , [articlesToShow])
 
-  // Function to fetch hero image from a blog post
-  const fetchBlogHeroImage = async (slug: string): Promise<string | null> => {
-    try {
-      // Try modern_posts first
-      const { data: modernPost, error: modernError } = await supabase
-        .from('modern_posts')
-        .select(`
-          id,
-          modern_post_sections!inner(
-            template_id,
-            data
-          )
-        `)
-        .eq('slug', slug)
-        .eq('modern_post_sections.template_id', '6f579a71-463c-43b4-b203-c2cb46c80d47') // Hero section template
-        .single()
-
-      if (!modernError && modernPost?.modern_post_sections?.[0]?.data?.backgroundImage) {
-        return modernPost.modern_post_sections[0].data.backgroundImage
-      }
-
-      // Fallback to legacy posts table
-      const { data: legacyPost, error: legacyError } = await supabase
-        .from('posts')
-        .select('featured_image')
-        .eq('slug', slug)
-        .single()
-
-      if (!legacyError && legacyPost?.featured_image) {
-        return legacyPost.featured_image
-      }
-
-      return null
-    } catch (error) {
-      console.error(`Error fetching hero image for ${slug}:`, error)
-      return null
-    }
-  }
-
-  // Enhance articles with hero images on component mount
-  useEffect(() => {
-    const enhanceArticlesWithHeroImages = async () => {
-      setLoading(true)
-      const enhanced = await Promise.all(
-        articlesToShow.map(async (article) => {
-          const slug = extractSlugFromUrl(article.url)
-          if (slug) {
-            const heroImageUrl = await fetchBlogHeroImage(slug)
-            return {
-              ...article,
-              heroImageUrl: heroImageUrl || article.imageUrl
-            }
-          }
-          return {
-            ...article,
-            heroImageUrl: article.imageUrl
-          }
-        })
-      )
-      setEnhancedArticles(enhanced)
-      setLoading(false)
-    }
-
-    enhanceArticlesWithHeroImages()
-  }, [articlesArray])
+  // No loading state needed since we're not doing async operations
+  const loading = false
 
   const ArticleCard = ({ article }: { article: RelatedArticle }) => {
     const imageUrl = article.heroImageUrl || article.imageUrl

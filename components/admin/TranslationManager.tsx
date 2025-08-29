@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   Languages, 
   Globe, 
@@ -58,6 +59,7 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
   const [error, setError] = useState<string | null>(null)
   const [editingTranslation, setEditingTranslation] = useState<string | null>(null)
   const [showTranslatedEditor, setShowTranslatedEditor] = useState(false)
+  const [selectedService, setSelectedService] = useState<'google' | 'mistral'>('google')
 
   const supportedLanguages = getSupportedLanguages().filter(lang => lang.code !== 'en')
 
@@ -66,29 +68,33 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
     checkApiKeyAvailability()
   }, [postId])
 
-  const checkApiKeyAvailability = async () => {
+  const checkApiKeyAvailability = async (service: 'google' | 'mistral' = selectedService) => {
     try {
-      // Check environment variable or database for Google Translate API key
       const response = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           postId,
-          targetLanguage: 'es', // Changed to Spanish for consistency
-          testMode: true
+          targetLanguage: 'es',
+          testMode: true,
+          translationService: service
         })
       })
       const result = await response.json()
       
       if (result.success && result.apiKeyProvided) {
-        setApiKey('available') // Set a flag to indicate Google Translate API key is available
-        setError(null) // Clear any previous errors
+        setApiKey('available')
+        setError(null)
       } else {
-        setError(result.error || 'Google Translate API key not found')
+        if (service === 'mistral' && result.error?.includes('authentication failed')) {
+          setError('Mistral API key is invalid or expired. Please check your API key configuration.')
+        } else {
+          setError(result.error || `${service === 'mistral' ? 'Mistral' : 'Google Translate'} API key not found`)
+        }
       }
     } catch (error) {
-      console.log('Google Translate API key check failed:', error)
-      setError('Failed to check Google Translate API key')
+      console.log(`${service === 'mistral' ? 'Mistral' : 'Google Translate'} API key check failed:`, error)
+      setError(`Failed to check ${service === 'mistral' ? 'Mistral' : 'Google Translate'} API key`)
     }
   }
 
@@ -146,8 +152,9 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
         body: JSON.stringify({
           postId,
           targetLanguage: languageCode,
-          forceCompleteTranslation: true, // Add flag to ensure complete section-by-section translation
-          includeUITranslation: true // Also translate UI elements
+          forceCompleteTranslation: true,
+          includeUITranslation: true,
+          translationService: selectedService
         })
       })
 
@@ -253,14 +260,32 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
           </Alert>
         )}
 
-        {/* API Key Configuration */}
-        <div className="flex items-center gap-2">
-          <Globe className="h-4 w-4 text-blue-600" />
-          <span className="text-sm font-medium">Translation Service:</span>
-          <Badge variant="outline">Google Translate API</Badge>
-          <Badge variant={apiKey === 'available' ? 'default' : 'secondary'}>
-            {apiKey === 'available' ? '✅ Configured' : '⚠️ Not Configured'}
-          </Badge>
+        {/* Translation Service Selection */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium">Translation Service:</span>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <Select value={selectedService} onValueChange={(value: 'google' | 'mistral') => {
+              setSelectedService(value)
+              setApiKey('') // Reset API key status when changing service
+              checkApiKeyAvailability(value)
+            }}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="google">Google Translate</SelectItem>
+                <SelectItem value="mistral">Mistral AI</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Badge variant={apiKey === 'available' ? 'default' : 'secondary'}>
+              {apiKey === 'available' ? '✅ Configured' : '⚠️ Not Configured'}
+            </Badge>
+          </div>
         </div>
 
         {/* Test Translation API */}
@@ -275,7 +300,8 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
                   body: JSON.stringify({
                     postId,
                     targetLanguage: 'de',
-                    testMode: true
+                    testMode: true,
+                    translationService: selectedService
                   })
                 })
                 const result = await response.json()
@@ -439,11 +465,21 @@ export function TranslationManager({ postId, postTitle, postSlug, onTranslationC
         <Alert>
           <Globe className="h-4 w-4" />
           <AlertDescription>
-            <strong>Google Translate API System:</strong>
+            <strong>{selectedService === 'mistral' ? 'Mistral AI' : 'Google Translate API'} System:</strong>
             <ul className="mt-2 space-y-1 text-sm">
               <li>• 🔑 <strong>Auto-Configured:</strong> API key automatically loaded from database or environment variables</li>
-              <li>• 🌐 <strong>Reliable:</strong> Professional-grade translations using Google's neural machine translation</li>
-              <li>• 📋 <strong>JSON-Based:</strong> Structured translation of buttons, CTAs, and main content</li>
+              {selectedService === 'mistral' ? (
+                <>
+                  <li>• 🤖 <strong>AI-Powered:</strong> Advanced translations using Mistral's large language model</li>
+                  <li>• 🎯 <strong>Context-Aware:</strong> Better understanding of travel content and cultural nuances</li>
+                  <li>• 💬 <strong>Natural Language:</strong> More conversational and human-like translations</li>
+                </>
+              ) : (
+                <>
+                  <li>• 🌐 <strong>Reliable:</strong> Professional-grade translations using Google's neural machine translation</li>
+                  <li>• 📋 <strong>JSON-Based:</strong> Structured translation of buttons, CTAs, and main content</li>
+                </>
+              )}
               <li>• 🎯 <strong>Section-by-Section:</strong> Each content section is individually translated for accuracy</li>
               <li>• 🌐 Each language creates a separate URL (e.g., /blog/post-title/es)</li>
               <li>• ✏️ Review and edit translations for accuracy and cultural context</li>

@@ -6,7 +6,7 @@ import { AuthorBlock } from './author-block'
 import { RichTextEditor } from './rich-text-editor'
 import { FAQSection } from './faq-section'
 import { ThingsToDoCards } from './things-to-do-cards'
-import { HotelCarousel } from './hotel-carousel'
+import { HotelCarouselNew } from './hotel-carousel-new'
 import { LocalTips } from './local-tips'
 import { AttractionsCarousel } from './attractions-carousel'
 import { StarterPackSection } from './starter-pack-section'
@@ -202,6 +202,17 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
         return null
       }
 
+      // Skip Related Articles and Internal Links sections - removed per user request
+      if (template.component_name === 'RelatedArticlesSection' || 
+          template.component_name === 'InternalLinksSection' ||
+          template.name?.includes('related-articles') ||
+          template.name?.includes('internal-links') ||
+          section.template_id === 'related-articles-123-456-789' ||
+          section.template_id === 'c2caf0b9-68b6-48c1-999c-4cc48bd12242') {
+        console.log(`🚫 Skipping section: ${template.component_name} (${section.template_id})`)
+        return null
+      }
+
       const sectionData = section.title ? { ...section.data, title: section.title } : (section.data || {})
 
       console.log(`📦 Rendering: ${template.component_name} (${section.template_id})`)
@@ -272,11 +283,11 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
 
       case 'HotelCarousel':
         return (
-          <HotelCarousel 
+          <HotelCarouselNew 
             key={section.id}
-            title={sectionData.title || 'Where to Stay'}
-            description={sectionData.description || 'Find perfect accommodations'}
-            destination="Italian Lakes"
+            title={sectionData.title || 'Luxe lifestyle hotspots according to your zodiac'}
+            description={sectionData.description || 'Top hotels offering luxury amenities'}
+            destination={sectionData.destination || "the area"}
             hotels={sectionData.hotels || []}
           />
         )
@@ -326,7 +337,8 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
         return <InternalLinksSection key={section.id} data={sectionData} />
 
       case 'RelatedArticlesSection':
-        return <RelatedArticlesSection key={section.id} data={sectionData} />
+        // Skip Related Articles section - removed per user request
+        return null
 
       case 'AuthorBlock':
         return (

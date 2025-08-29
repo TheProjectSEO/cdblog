@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
 import { TranslationService } from '@/lib/services/translationService'
+import { MistralTranslationService } from '@/lib/services/mistralTranslationService'
 
 // Create admin client for accessing API keys table
 const supabaseAdmin = createClient(
@@ -17,7 +18,14 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { postId, targetLanguage, apiKey, testMode, forceCompleteTranslation, includeUITranslation } = await request.json()
+    const { postId, targetLanguage, apiKey, testMode, forceCompleteTranslation, includeUITranslation, translationService = 'google' } = await request.json()
+
+    console.log('Translation request received:', {
+      postId,
+      targetLanguage,
+      translationService,
+      testMode: !!testMode
+    })
 
     if (!postId || !targetLanguage) {
       return NextResponse.json(
@@ -28,111 +36,196 @@ export async function POST(request: NextRequest) {
 
     // Test mode - test the API key without full translation
     if (testMode) {
-      // Try to get API key from database or environment if not provided
-      let testApiKey = apiKey
-      
-      if (!testApiKey) {
-        // Try to get Google Translate API key from database
-        const { data: storedApiKey, error: keyError } = await supabaseAdmin
-          .from('api_keys')
-          .select('key_value')
-          .eq('service', 'google_translate')
-          .eq('is_active', true)
-          .single()
+      if (translationService === 'mistral') {
+        // Test Mistral API
+        let testApiKey = apiKey
         
-        if (storedApiKey) {
-          testApiKey = storedApiKey.key_value
-        } else if (process.env.GOOGLE_TRANSLATE_API_KEY) {
-          testApiKey = process.env.GOOGLE_TRANSLATE_API_KEY
+        if (!testApiKey) {
+          // Try to get Mistral API key from database
+          const { data: storedApiKey, error: keyError } = await supabaseAdmin
+            .from('api_keys')
+            .select('key_value')
+            .eq('service', 'mistral')
+            .eq('is_active', true)
+            .single()
+          
+          if (storedApiKey) {
+            testApiKey = storedApiKey.key_value
+          } else if (process.env.MISTRAL_API_KEY) {
+            testApiKey = process.env.MISTRAL_API_KEY
+          }
         }
-      }
-      
-      if (!testApiKey) {
-        return NextResponse.json({
-          success: false,
-          error: 'No Google Translate API key available - please set GOOGLE_TRANSLATE_API_KEY environment variable or configure in database',
-          apiKeyProvided: false
-        })
-      }
-      
-      try {
-        // Use Google Translate service for testing
-        const testService = new TranslationService(testApiKey)
-        const testResult = await testService.translateText({
-          text: 'Hello, world!',
-          targetLanguage: 'es'
-        })
         
-        if (testResult.success) {
-          return NextResponse.json({
-            success: true,
-            message: 'Google Translate API connection successful',
-            postId,
-            targetLanguage,
-            apiKeyProvided: true
-          })
-        } else {
+        if (!testApiKey) {
           return NextResponse.json({
             success: false,
-            error: testResult.error || 'Google Translate API test failed',
+            error: 'No Mistral API key available - please set MISTRAL_API_KEY environment variable or configure in database',
+            apiKeyProvided: false
+          })
+        }
+        
+        try {
+          const testService = new MistralTranslationService(testApiKey)
+          const testResult = await testService.testConnection()
+          
+          if (testResult.success) {
+            return NextResponse.json({
+              success: true,
+              message: 'Mistral AI connection successful',
+              service: 'mistral',
+              postId,
+              targetLanguage,
+              apiKeyProvided: true
+            })
+          } else {
+            return NextResponse.json({
+              success: false,
+              error: testResult.error || 'Mistral API test failed',
+              apiKeyProvided: true
+            })
+          }
+        } catch (error) {
+          return NextResponse.json({
+            success: false,
+            error: 'Mistral API key test failed - invalid key or service unavailable',
             apiKeyProvided: true
           })
         }
-      } catch (error) {
-        return NextResponse.json({
-          success: false,
-          error: 'Google Translate API key test failed - invalid key or service unavailable',
-          apiKeyProvided: true
-        })
+      } else {
+        // Test Google Translate API (default)
+        let testApiKey = apiKey
+        
+        if (!testApiKey) {
+          // Try to get Google Translate API key from database
+          const { data: storedApiKey, error: keyError } = await supabaseAdmin
+            .from('api_keys')
+            .select('key_value')
+            .eq('service', 'google_translate')
+            .eq('is_active', true)
+            .single()
+          
+          if (storedApiKey) {
+            testApiKey = storedApiKey.key_value
+          } else if (process.env.GOOGLE_TRANSLATE_API_KEY) {
+            testApiKey = process.env.GOOGLE_TRANSLATE_API_KEY
+          }
+        }
+        
+        if (!testApiKey) {
+          return NextResponse.json({
+            success: false,
+            error: 'No Google Translate API key available - please set GOOGLE_TRANSLATE_API_KEY environment variable or configure in database',
+            apiKeyProvided: false
+          })
+        }
+        
+        try {
+          // Use Google Translate service for testing
+          const testService = new TranslationService(testApiKey)
+          const testResult = await testService.translateText({
+            text: 'Hello, world!',
+            targetLanguage: 'es'
+          })
+          
+          if (testResult.success) {
+            return NextResponse.json({
+              success: true,
+              message: 'Google Translate API connection successful',
+              service: 'google',
+              postId,
+              targetLanguage,
+              apiKeyProvided: true
+            })
+          } else {
+            return NextResponse.json({
+              success: false,
+              error: testResult.error || 'Google Translate API test failed',
+              apiKeyProvided: true
+            })
+          }
+        } catch (error) {
+          return NextResponse.json({
+            success: false,
+            error: 'Google Translate API key test failed - invalid key or service unavailable',
+            apiKeyProvided: true
+          })
+        }
       }
     }
 
-    // Get Google Translate API key from database or environment if not provided
+    // Get API key from database or environment if not provided
     let finalApiKey = apiKey
     
     if (!finalApiKey) {
-      // Try to get Google Translate API key from database
+      // Try to get API key from database based on service
+      const serviceType = translationService === 'mistral' ? 'mistral' : 'google_translate'
       const { data: storedApiKey, error: keyError } = await supabaseAdmin
         .from('api_keys')
         .select('key_value')
-        .eq('service', 'google_translate')
+        .eq('service', serviceType)
         .eq('is_active', true)
         .single()
       
       if (storedApiKey) {
         finalApiKey = storedApiKey.key_value
-      } else if (process.env.GOOGLE_TRANSLATE_API_KEY) {
+      } else if (translationService === 'mistral' && process.env.MISTRAL_API_KEY) {
+        finalApiKey = process.env.MISTRAL_API_KEY
+      } else if (translationService === 'google' && process.env.GOOGLE_TRANSLATE_API_KEY) {
         finalApiKey = process.env.GOOGLE_TRANSLATE_API_KEY
       }
     }
 
-    // Initialize Google Translate service
+    // Initialize the appropriate translation service
     if (!finalApiKey) {
+      const serviceName = translationService === 'mistral' ? 'Mistral' : 'Google Translate'
+      const envVar = translationService === 'mistral' ? 'MISTRAL_API_KEY' : 'GOOGLE_TRANSLATE_API_KEY'
       return NextResponse.json(
-        { error: 'Google Translate API key is required. Please set GOOGLE_TRANSLATE_API_KEY environment variable or configure in database.' },
+        { error: `${serviceName} API key is required. Please set ${envVar} environment variable or configure in database.` },
         { status: 400 }
       )
     }
 
-    // Use Google Translate service for JSON-based translation
-    const translationService = new TranslationService(finalApiKey)
+    // Use the selected translation service
+    const translationServiceInstance = translationService === 'mistral' 
+      ? new MistralTranslationService(finalApiKey)
+      : new TranslationService(finalApiKey)
 
-    // Fetch the original post with all related data
-    const { data: post, error: postError } = await supabase
+    // Fetch the original post first
+    const { data: posts, error: postError } = await supabase
       .from('modern_posts')
-      .select(`
-        *,
-        sections:modern_post_sections(*)
-      `)
+      .select('*')
       .eq('id', postId)
-      .single()
+      .limit(1)
 
-    if (postError || !post) {
+    const post = posts && posts.length > 0 ? posts[0] : null
+
+    if (!post) {
+      console.error('Post lookup failed:', {
+        postId,
+        postError: postError?.message,
+        postsFound: posts?.length || 0
+      })
       return NextResponse.json(
-        { error: 'Post not found' },
+        { error: `Post not found with ID: ${postId}. Error: ${postError?.message || 'No post data'}` },
         { status: 404 }
       )
     }
+
+    // Fetch sections separately to avoid duplicate row issues
+    const { data: sections, error: sectionsError } = await supabase
+      .from('modern_post_sections')
+      .select('*')
+      .eq('post_id', postId)
+      .order('position', { ascending: true })
+
+    // Add sections to the post object
+    post.sections = sections || []
+
+    console.log('Post found successfully:', {
+      postId: post.id,
+      title: post.title,
+      sectionsCount: post.sections.length
+    })
 
     // Check if translation already exists
     const { data: existingTranslation } = await supabase
@@ -165,7 +258,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create or update translation record with 'translating' status
-    const translatedSlug = translationService.generateSlug(post.slug, targetLanguage)
+    const translatedSlug = translationServiceInstance.generateSlug(post.slug, targetLanguage)
     
     let translationId: string
 
@@ -191,7 +284,7 @@ export async function POST(request: NextRequest) {
           translated_title: 'Translating...',
           translated_slug: translatedSlug,
           translation_status: 'translating',
-          translation_service: 'google_translate'
+          translation_service: translationService === 'mistral' ? 'mistral' : 'google_translate'
         })
         .select('id')
         .single()
@@ -207,7 +300,53 @@ export async function POST(request: NextRequest) {
       console.log('API key present:', !!finalApiKey)
       console.log('Force complete translation:', !!forceCompleteTranslation)
       
-      const translatedData = await translationService.translatePost(postData, targetLanguage)
+      // For now, only Google Translate service supports translatePost method
+      let translatedData
+      if (translationService === 'mistral') {
+        // For Mistral, we'll handle translation field by field
+        const fieldsToTranslate: string[] = []
+        const fieldMap: { [key: string]: string } = {}
+        
+        if (postData.title) {
+          fieldMap.title = fieldsToTranslate.length.toString()
+          fieldsToTranslate.push(postData.title)
+        }
+        if (postData.excerpt) {
+          fieldMap.excerpt = fieldsToTranslate.length.toString()
+          fieldsToTranslate.push(postData.excerpt)
+        }
+        if (postData.seo_title) {
+          fieldMap.seo_title = fieldsToTranslate.length.toString()
+          fieldsToTranslate.push(postData.seo_title)
+        }
+        if (postData.seo_description) {
+          fieldMap.seo_description = fieldsToTranslate.length.toString()
+          fieldsToTranslate.push(postData.seo_description)
+        }
+        
+        const mistralTranslation = await translationServiceInstance.translateText({
+          text: fieldsToTranslate,
+          targetLanguage
+        })
+        
+        if (mistralTranslation.success) {
+          const translations = Array.isArray(mistralTranslation.translatedText) 
+            ? mistralTranslation.translatedText 
+            : [mistralTranslation.translatedText]
+          
+          translatedData = {
+            translated_title: fieldMap.title !== undefined ? translations[parseInt(fieldMap.title)] : postData.title,
+            translated_excerpt: fieldMap.excerpt !== undefined ? translations[parseInt(fieldMap.excerpt)] : postData.excerpt,
+            translated_seo_title: fieldMap.seo_title !== undefined ? translations[parseInt(fieldMap.seo_title)] : postData.seo_title,
+            translated_seo_description: fieldMap.seo_description !== undefined ? translations[parseInt(fieldMap.seo_description)] : postData.seo_description,
+          }
+        } else {
+          throw new Error(mistralTranslation.error || 'Mistral translation failed')
+        }
+      } else {
+        // Use Google Translate's comprehensive translatePost method
+        translatedData = await (translationServiceInstance as TranslationService).translatePost(postData, targetLanguage)
+      }
       console.log('Translation completed successfully')
       
       // Update the translation record with translated content
@@ -215,7 +354,7 @@ export async function POST(request: NextRequest) {
         .from('post_translations')
         .update({
           translated_title: translatedData.translated_title,
-          translated_slug: translationService.generateSlug(post.slug, targetLanguage),
+          translated_slug: translationServiceInstance.generateSlug(post.slug, targetLanguage),
           translated_excerpt: translatedData.translated_excerpt,
           translated_content: translatedData.translated_content,
           translated_seo_title: translatedData.translated_seo_title,
@@ -271,7 +410,7 @@ export async function POST(request: NextRequest) {
               if (textToTranslate.length > 0) {
                 // Translate the extracted text
                 console.log(`Sending ${textToTranslate.length} texts to translation service...`)
-                const textTranslation = await translationService.translateText({
+                const textTranslation = await translationServiceInstance.translateText({
                   text: textToTranslate,
                   targetLanguage
                 })
@@ -365,7 +504,7 @@ export async function POST(request: NextRequest) {
                   console.log(`Sample texts to translate:`, sectionTexts.slice(0, 3))
                 }
                 
-                const sectionTranslation = await translationService.translateText({
+                const sectionTranslation = await translationServiceInstance.translateText({
                   text: sectionTexts,
                   targetLanguage
                 })
@@ -463,7 +602,7 @@ export async function POST(request: NextRequest) {
           
           if (translatableStrings.length > 0) {
             // Translate UI strings
-            const uiTranslationResult = await translationService.translateText({
+            const uiTranslationResult = await translationServiceInstance.translateText({
               text: translatableStrings,
               targetLanguage
             })
@@ -505,7 +644,7 @@ export async function POST(request: NextRequest) {
         success: true,
         translationId,
         message: 'Translation completed successfully',
-        translatedSlug: translationService.generateSlug(post.slug, targetLanguage)
+        translatedSlug: translationServiceInstance.generateSlug(post.slug, targetLanguage)
       })
     } catch (translationError) {
       // Update translation status to failed
@@ -771,7 +910,7 @@ async function translateLargeHTML(html: string, translationService: any, targetL
       
       if (texts.length > 0) {
         try {
-          const translation = await translationService.translateText({
+          const translation = await translationServiceInstance.translateText({
             text: texts,
             targetLanguage
           })
