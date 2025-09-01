@@ -1,4 +1,4 @@
-import { getModernPostBySlug, getModernPostBySlugWithPreview, getStarterPackForPost, supabase } from "@/lib/supabase"
+import { getModernPostBySlug, getModernPostBySlugWithPreview, getStarterPackForPost, getLegacyBlogPostBySlug, supabase } from "@/lib/supabase"
 import { DynamicSectionRenderer } from "@/components/dynamic-section-renderer"
 import { Footer } from "@/components/footer"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
@@ -7,6 +7,10 @@ import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { BlogArticleTemplate } from "@/components/blog-article-template"
+import { convertBlogPostToTemplate } from "@/lib/blog-template-utils"
+import { convertPostToTemplate } from "@/lib/blog-template-generator"
+import { convertLegacyPostToTemplate } from "@/lib/legacy-blog-template-generator"
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -22,24 +26,40 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
   const resolvedSearchParams = await searchParams
   const isPreview = resolvedSearchParams.preview === 'true'
   
-  // Use preview function if in preview mode, otherwise use regular function
-  const post = isPreview 
+  // First try to get modern post, then fallback to legacy post
+  let post = isPreview 
     ? await getModernPostBySlugWithPreview(resolvedParams.slug, true)
     : await getModernPostBySlug(resolvedParams.slug)
   
+  let isLegacyPost = false
+  let legacyPost = null
+  
+  // If no modern post found, try legacy blog_posts table
   if (!post) {
+    legacyPost = await getLegacyBlogPostBySlug(resolvedParams.slug)
+    if (legacyPost) {
+      isLegacyPost = true
+      console.log('Found legacy post:', {
+        id: legacyPost.id,
+        title: legacyPost.title,
+        contentLength: legacyPost.content?.length || 0
+      })
+    }
+  }
+  
+  if (!post && !legacyPost) {
     notFound()
   }
 
-  // Get available translations for this post
-  const { data: translations } = await supabase
+  // Get available translations for this post (only for modern posts)
+  const { data: translations } = !isLegacyPost && post ? await supabase
     .from('post_translations')
     .select('language_code, translated_slug, translation_status')
     .eq('original_post_id', post.id)
-    .eq('translation_status', 'completed')
+    .eq('translation_status', 'completed') : { data: null }
 
-  // Get starter pack data for this post
-  const starterPackData = await getStarterPackForPost(post.id)
+  // Get starter pack data for this post (only for modern posts)  
+  const starterPackData = !isLegacyPost && post ? await getStarterPackForPost(post.id) : null
 
   // Inject starter pack data into relevant sections
   if (starterPackData && post.sections) {
@@ -65,15 +85,69 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
     })
   }
 
-  const hasSections = post.sections && post.sections.length > 0
+  // For legacy posts, we'll always use the template system with the real content
+  if (isLegacyPost && legacyPost) {
+    const legacyTemplateData = convertLegacyPostToTemplate(legacyPost)
+    const convertedLegacyPost = convertBlogPostToTemplate(legacyTemplateData)
+
+    // JSON-LD structured data for SEO for legacy post
+    const legacyJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: legacyPost.title,
+      description: legacyPost.excerpt || '',
+      image: legacyPost.featured_image_url || '',
+      datePublished: legacyPost.published_at,
+      dateModified: legacyPost.modified_at || legacyPost.updated_at,
+      author: {
+        '@type': 'Person',
+        name: legacyTemplateData.author.display_name,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'CuddlyNest',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://cuddlynest.com/logo.png',
+        },
+      },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `https://cuddlynest.com/blog/${legacyPost.slug}`,
+      },
+      articleSection: 'Travel Guide',
+      keywords: `travel, ${legacyPost.title}, travel guide`,
+    }
+
+    return (
+      <>
+        {/* JSON-LD Structured Data for Legacy Post */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(legacyJsonLd) }}
+        />
+
+        <BlogArticleTemplate 
+          article={convertedLegacyPost} 
+          availableTranslations={[]} // No translations for legacy posts
+        />
+      </>
+    )
+  }
+
+  const hasSections = post?.sections && post.sections.length > 0
   
   console.log('BlogPostPage debug:', {
-    postId: post.id,
-    postTitle: post.title,
-    sectionsCount: post.sections?.length || 0,
+    postId: post?.id,
+    postTitle: post?.title,
+    sectionsCount: post?.sections?.length || 0,
     hasSections,
-    originalWpId: (post as any).original_wp_id
+    originalWpId: (post as any)?.original_wp_id,
+    isLegacyPost
   })
+
+  // Check if post should use the new template based on database settings
+  const shouldUseNewTemplate = post?.template_enabled === true || post?.template_type === 'article_template'
 
   // JSON-LD structured data for SEO
   const jsonLd = {
@@ -102,6 +176,28 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
     },
     articleSection: 'Travel Guide',
     keywords: post.meta_keywords || `travel, ${post.title}, travel guide`,
+  }
+
+  // Use new template for posts marked for template usage
+  if (shouldUseNewTemplate) {
+    // Use automated template generation for all posts
+    const templateData = convertPostToTemplate(post)
+    const convertedPost = convertBlogPostToTemplate(templateData)
+
+    return (
+      <>
+        {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+
+        <BlogArticleTemplate 
+          article={convertedPost} 
+          availableTranslations={translations || []} 
+        />
+      </>
+    )
   }
 
   return (
@@ -206,13 +302,54 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
 export async function generateMetadata({ params }: BlogPostPageProps) {
   const resolvedParams = await params
   
-  // Get the post data
-  const post = await getModernPostBySlug(resolvedParams.slug)
+  // First try to get modern post, then fallback to legacy post
+  let post = await getModernPostBySlug(resolvedParams.slug)
+  let legacyPost = null
   
+  // If no modern post found, try legacy blog_posts table
   if (!post) {
+    legacyPost = await getLegacyBlogPostBySlug(resolvedParams.slug)
+  }
+  
+  if (!post && !legacyPost) {
     return {
       title: 'Post Not Found',
       description: 'The requested post could not be found.'
+    }
+  }
+
+  // Handle legacy post metadata
+  if (legacyPost && !post) {
+    return {
+      title: legacyPost.seo_title || legacyPost.title,
+      description: legacyPost.meta_description || legacyPost.excerpt,
+      keywords: `travel, ${legacyPost.title}, travel guide`,
+      alternates: {
+        canonical: `/blog/${legacyPost.slug}`,
+      },
+      openGraph: {
+        title: legacyPost.seo_title || legacyPost.title,
+        description: legacyPost.meta_description || legacyPost.excerpt,
+        type: 'article',
+        locale: 'en',
+        publishedTime: legacyPost.published_at,
+        modifiedTime: legacyPost.modified_at || legacyPost.updated_at,
+        authors: ['CuddlyNest Travel Team'],
+        images: legacyPost.featured_image_url ? [{
+          url: legacyPost.featured_image_url,
+          alt: legacyPost.title
+        }] : []
+      },
+      twitter: {
+        card: 'summary_large_image',
+        site: '@cuddlynest',
+        title: legacyPost.seo_title || legacyPost.title,
+        description: legacyPost.meta_description || legacyPost.excerpt,
+        images: legacyPost.featured_image_url ? [{
+          url: legacyPost.featured_image_url,
+          alt: legacyPost.title
+        }] : []
+      },
     }
   }
 

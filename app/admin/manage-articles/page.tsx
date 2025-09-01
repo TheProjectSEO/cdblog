@@ -16,7 +16,8 @@ import {
   Calendar,
   Clock,
   ArrowLeft,
-  RefreshCw
+  RefreshCw,
+  Settings
 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -29,6 +30,8 @@ interface ModernPost {
   excerpt?: string
   created_at: string
   updated_at: string
+  template_enabled?: boolean
+  template_type?: string
   author?: {
     display_name: string
   }
@@ -299,6 +302,12 @@ export default function ManageArticlesPage() {
                 <Button variant="outline" size="sm">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Admin
+                </Button>
+              </Link>
+              <Link href="/admin/template-control" className="text-green-600 hover:text-green-800">
+                <Button variant="outline" size="sm" className="border-green-200">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Template Control
                 </Button>
               </Link>
               <div className="flex items-center gap-2">

@@ -652,3 +652,311 @@ export async function searchPosts(query: string, limit: number = 20) {
 
   return postsWithImages
 }
+
+// Legacy blog post interfaces for the blog_posts table
+export interface LegacyBlogPost {
+  id: number
+  wp_post_id?: number
+  title: string
+  slug: string
+  content?: string
+  excerpt?: string
+  status: string
+  post_type?: string
+  published_at?: string
+  modified_at?: string
+  author_id?: number
+  featured_image_url?: string
+  meta_description?: string
+  seo_title?: string
+  created_at: string
+  updated_at: string
+  wordpress_id?: number
+  blog_sections?: Array<{
+    id: number
+    post_id: number
+    section_type: string
+    title?: string
+    content: any
+    position?: number
+    is_active: boolean
+  }>
+  modern_wordpress_content?: Array<{
+    id: string
+    position: number
+    data: any
+  }>
+}
+
+export interface LegacyBlogAuthor {
+  id: number
+  wp_author_id?: number
+  login: string
+  email: string
+  display_name?: string
+  first_name?: string
+  last_name?: string
+  created_at: string
+  updated_at: string
+  wordpress_id?: number
+}
+
+export interface LegacyBlogCategory {
+  id: number
+  name: string
+  slug: string
+  description?: string
+  created_at: string
+  updated_at: string
+  wordpress_id?: number
+}
+
+// Get legacy blog post by slug with author and categories
+export async function getLegacyBlogPostBySlug(slug: string): Promise<LegacyBlogPost | null> {
+  try {
+    // Use admin client to bypass RLS policies for legacy posts
+    const client = supabaseAdmin || supabase
+    const { data: postData, error: postError } = await client
+      .from('blog_posts')
+      .select(`
+        *,
+        blog_authors(*),
+        blog_post_categories(
+          blog_categories(*)
+        )
+      `)
+      .eq('slug', slug)
+      .or('status.eq.publish,status.eq.published,status.eq.migrated')
+      .single()
+
+    if (postError) {
+      if (postError.code === 'PGRST116') {
+        console.log(`Legacy blog post not found for slug: ${slug}`)
+        return null
+      }
+      console.error('Error fetching legacy blog post:', postError.message)
+      return null
+    }
+
+    if (!postData) {
+      return null
+    }
+
+    // Try to fetch the real WordPress content from modern_post_sections
+    // First, find the corresponding modern post
+    const { data: modernPost } = await client
+      .from('modern_posts')
+      .select('id')
+      .eq('slug', slug)
+      .single()
+
+    let modernWordPressContent: any[] = []
+    
+    if (modernPost) {
+      // Fetch the modern post sections which contain the real WordPress content
+      const { data: modernSections } = await client
+        .from('modern_post_sections')
+        .select('id, position, data')
+        .eq('post_id', modernPost.id)
+        .order('position', { ascending: true })
+
+      modernWordPressContent = modernSections || []
+    }
+
+    // Also fetch legacy blog sections as fallback
+    const { data: sectionsData, error: sectionsError } = await client
+      .from('blog_sections')
+      .select('*')
+      .eq('post_id', postData.id)
+      .eq('is_active', true)
+      .order('position', { ascending: true })
+
+    if (sectionsError) {
+      console.warn('Warning: Could not fetch sections for legacy post:', sectionsError.message)
+    }
+
+    // Add both sections to the post data
+    const postWithSections = {
+      ...postData,
+      blog_sections: sectionsData || [],
+      modern_wordpress_content: modernWordPressContent
+    }
+
+    return postWithSections
+  } catch (error) {
+    console.error('Exception fetching legacy blog post:', error)
+    return null
+  }
+}
+
+// Get all published legacy blog posts for migration or listing
+export async function getLegacyBlogPosts(limit: number = 50, offset: number = 0): Promise<LegacyBlogPost[]> {
+  try {
+    // Use admin client to bypass RLS policies for legacy posts
+    const client = supabaseAdmin || supabase
+    const { data: posts, error } = await client
+      .from('blog_posts')
+      .select(`
+        *,
+        blog_authors(*),
+        blog_post_categories(
+          blog_categories(*)
+        )
+      `)
+      .or('status.eq.publish,status.eq.published,status.eq.migrated')
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    if (error) {
+      console.error('Error fetching legacy blog posts:', error)
+      return []
+    }
+
+    return posts || []
+  } catch (error) {
+    console.error('Exception fetching legacy blog posts:', error)
+    return []
+  }
+}
+
+// Search legacy blog posts
+export async function searchLegacyBlogPosts(query: string, limit: number = 20): Promise<LegacyBlogPost[]> {
+  try {
+    if (!query.trim()) {
+      return getLegacyBlogPosts(limit)
+    }
+
+    // Use admin client to bypass RLS policies for legacy posts
+    const client = supabaseAdmin || supabase
+    const { data: posts, error } = await client
+      .from('blog_posts')
+      .select(`
+        *,
+        blog_authors(*),
+        blog_post_categories(
+          blog_categories(*)
+        )
+      `)
+      .or('status.eq.publish,status.eq.published,status.eq.migrated')
+      .or(`title.ilike.%${query}%,content.ilike.%${query}%,excerpt.ilike.%${query}%`)
+      .order('published_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('Error searching legacy blog posts:', error)
+      return []
+    }
+
+    return posts || []
+  } catch (error) {
+    console.error('Exception searching legacy blog posts:', error)
+    return []
+  }
+}
+
+// Get recent legacy blog posts for homepage
+export async function getRecentLegacyPosts(limit: number = 8) {
+  try {
+    // Use admin client to bypass RLS policies for legacy posts
+    const client = supabaseAdmin || supabase
+    const { data: posts, error } = await client
+      .from('blog_posts')
+      .select(`
+        id,
+        title,
+        slug,
+        excerpt,
+        published_at,
+        created_at,
+        featured_image_url,
+        blog_authors(display_name)
+      `)
+      .or('status.eq.publish,status.eq.published,status.eq.migrated')
+      .order('published_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('Error fetching recent legacy posts:', error)
+      return []
+    }
+
+    // Transform posts to match the expected format
+    const postsWithImages = (posts || []).map((post) => ({
+      id: post.id.toString(),
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      published_at: post.published_at,
+      created_at: post.created_at,
+      reading_time: 5, // Default reading time
+      featured_image: post.featured_image_url ? { file_url: post.featured_image_url } : null
+    }))
+
+    return postsWithImages
+  } catch (error) {
+    console.error('Exception fetching recent legacy posts:', error)
+    return []
+  }
+}
+
+// Get combined recent posts (modern + legacy)
+export async function getCombinedRecentPosts(limit: number = 8) {
+  try {
+    // Get modern posts
+    const modernPosts = await getRecentPosts(Math.ceil(limit / 2))
+    
+    // Get legacy posts
+    const legacyPosts = await getRecentLegacyPosts(limit - modernPosts.length)
+    
+    // Combine and sort by published_at
+    const combinedPosts = [...modernPosts, ...legacyPosts].sort((a, b) => {
+      const dateA = new Date(a.published_at || a.created_at)
+      const dateB = new Date(b.published_at || b.created_at)
+      return dateB.getTime() - dateA.getTime()
+    })
+
+    return combinedPosts.slice(0, limit)
+  } catch (error) {
+    console.error('Exception getting combined recent posts:', error)
+    return []
+  }
+}
+
+// Combined search for both modern and legacy posts
+export async function searchCombinedPosts(query: string, limit: number = 20) {
+  try {
+    if (!query.trim()) {
+      return getCombinedRecentPosts(limit)
+    }
+
+    // Search both modern and legacy posts
+    const [modernPosts, legacyPosts] = await Promise.all([
+      searchPosts(query, Math.ceil(limit / 2)),
+      searchLegacyBlogPosts(query, Math.ceil(limit / 2))
+    ])
+
+    // Transform legacy posts to match modern post format
+    const transformedLegacyPosts = legacyPosts.map((post) => ({
+      id: post.id.toString(),
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      published_at: post.published_at,
+      created_at: post.created_at,
+      reading_time: 5, // Default reading time
+      featured_image: post.featured_image_url ? { file_url: post.featured_image_url } : null
+    }))
+
+    // Combine and sort by relevance/date
+    const combinedPosts = [...modernPosts, ...transformedLegacyPosts].sort((a, b) => {
+      const dateA = new Date(a.published_at || a.created_at)
+      const dateB = new Date(b.published_at || b.created_at)
+      return dateB.getTime() - dateA.getTime()
+    })
+
+    return combinedPosts.slice(0, limit)
+  } catch (error) {
+    console.error('Exception searching combined posts:', error)
+    return []
+  }
+}

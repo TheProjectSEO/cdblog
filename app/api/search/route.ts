@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { searchPosts, searchPostsByCategory } from '@/lib/supabase'
+import { searchPosts, searchPostsByCategory, searchCombinedPosts } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       posts = await searchPostsByCategory(category, limit)
       searchType = 'category'
     } else {
-      posts = await searchPosts(query, limit)
+      posts = await searchCombinedPosts(query, limit) // Use combined search
       searchType = 'text'
     }
     

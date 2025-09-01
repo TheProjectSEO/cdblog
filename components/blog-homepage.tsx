@@ -54,14 +54,99 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
       <header className="absolute top-0 left-0 right-0 z-50 h-[68px] flex items-center justify-between px-6 md:px-[100px]">
         <div className="flex items-center">
           <Link href="/" className="w-[200px] h-[43.61px] flex items-center">
-            <Image
-              src="/blog-images/cuddlynest-logo-white.svg"
-              alt="CuddlyNest"
-              width={200}
-              height={43.61}
-              className="h-full w-auto"
-              priority
-            />
+            <div className="cursor-pointer w-full h-full relative">
+              {/* Group 243 - Birds and icon elements */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '-0.52px',
+                  top: '-0.01px',
+                  width: '64.07px',
+                  height: '38.15px'
+                }}
+              >
+                {/* Vector 1 - Pink bird */}
+                <img
+                  src="/blog-images/bird-vector-1.svg"
+                  alt=""
+                  style={{
+                    position: 'absolute',
+                    left: '40.08px',
+                    top: '9.17px',
+                    width: '23px',
+                    height: '9px'
+                  }}
+                />
+                
+                {/* Vector 2 - Purple element */}
+                <img
+                  src="/blog-images/bird-vector-2.svg"
+                  alt=""
+                  style={{
+                    position: 'absolute',
+                    left: '19.52px',
+                    top: '21.42px',
+                    width: '6px',
+                    height: '7px'
+                  }}
+                />
+                
+                {/* Vector 3 - Purple element */}
+                <img
+                  src="/blog-images/bird-vector-3.svg"
+                  alt=""
+                  style={{
+                    position: 'absolute',
+                    left: '8.43px',
+                    top: '9.67px',
+                    width: '11px',
+                    height: '3px'
+                  }}
+                />
+                
+                {/* Vector 4 - Purple element */}
+                <img
+                  src="/blog-images/bird-vector-4.svg"
+                  alt=""
+                  style={{
+                    position: 'absolute',
+                    left: '34.51px',
+                    top: '4.79px',
+                    width: '14px',
+                    height: '7px'
+                  }}
+                />
+                
+                {/* Vector 5 - Pink base element */}
+                <img
+                  src="/blog-images/bird-vector-5.svg"
+                  alt=""
+                  style={{
+                    position: 'absolute',
+                    left: '0px',
+                    top: '0px',
+                    width: '48px',
+                    height: '39px'
+                  }}
+                />
+              </div>
+              
+              {/* CuddlyNest Text - Black color for blog homepage */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '75px',
+                  top: '8px',
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  fontFamily: 'Poppins, sans-serif',
+                  color: '#000000',
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                CuddlyNest
+              </div>
+            </div>
           </Link>
         </div>
         

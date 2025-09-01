@@ -1,4 +1,4 @@
-import { getRecentPosts, getPostsCount, getPopularCategories, getFeaturedPosts } from "@/lib/supabase"
+import { getRecentPosts, getPostsCount, getPopularCategories, getFeaturedPosts, getCombinedRecentPosts } from "@/lib/supabase"
 import { BlogHomepage } from "@/components/blog-homepage"
 
 // Default categories if database is empty
@@ -41,9 +41,9 @@ export const metadata = {
 }
 
 export default async function BlogPage() {
-  // Fetch real data from database
+  // Fetch real data from database - now includes both modern and legacy posts
   const [recentPosts, featuredPosts, totalPosts, categories] = await Promise.all([
-    getRecentPosts(12),
+    getCombinedRecentPosts(12), // Use combined posts instead of just modern posts
     getFeaturedPosts(6),
     getPostsCount(),
     getPopularCategories(8)
