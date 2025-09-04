@@ -289,7 +289,7 @@ export default function ArticlePage() {
           {/* Navigation Links */}
           {/* Categories -> Editorial Policy */}
           <Link
-            href="/editorial-policy"
+            href="/blog/editorial-policy"
             style={{
               position: 'absolute',
               left: '1280px',
@@ -718,13 +718,6 @@ export default function ArticlePage() {
                 </div>
               </div>
 
-              {/* Ad Banner */}
-              <div 
-                className="bg-gray-100 rounded-lg flex items-center justify-center"
-                style={{ height: '300px' }}
-              >
-                <span className="text-gray-400">Advertisement</span>
-              </div>
             </div>
           </div>
           
@@ -1000,7 +993,7 @@ export default function ArticlePage() {
                 {/* Links */}
                 <div className="flex gap-6">
                   <Link 
-                    href="/editorial-policy"
+                    href="/blog/editorial-policy"
                     className="text-[#0066CC] hover:text-[#0052A3] transition-colors"
                     style={{
                       fontFamily: 'Poppins, sans-serif',

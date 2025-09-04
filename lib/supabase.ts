@@ -325,9 +325,11 @@ export async function getRecentPosts(limit: number = 8) {
       published_at,
       reading_time,
       created_at,
-      og_image
+      og_image,
+      status
     `)
     .eq('status', 'published')
+    .not('published_at', 'is', null)
     .order('published_at', { ascending: false })
     .limit(limit)
 
@@ -465,9 +467,11 @@ export async function searchPostsByCategory(category: string, limit: number = 20
       published_at,
       reading_time,
       created_at,
-      og_image
+      og_image,
+      status
     `)
     .eq('status', 'published')
+    .not('published_at', 'is', null)
     .or(`title.ilike.%${category}%,excerpt.ilike.%${category}%`)
     .order('published_at', { ascending: false })
     .limit(limit)
@@ -632,9 +636,11 @@ export async function searchPosts(query: string, limit: number = 20) {
       created_at,
       meta_title,
       meta_description,
-      og_image
+      og_image,
+      status
     `)
     .eq('status', 'published')
+    .not('published_at', 'is', null)
     .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,meta_title.ilike.%${query}%,meta_description.ilike.%${query}%`)
     .order('published_at', { ascending: false })
     .limit(limit)
@@ -804,15 +810,21 @@ export async function getLegacyBlogPosts(limit: number = 50, offset: number = 0)
         )
       `)
       .or('status.eq.publish,status.eq.published,status.eq.migrated')
+      .not('published_at', 'is', null)
       .order('published_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+      .range(offset, offset + (limit * 2) - 1) // Get more to filter out nulls
 
     if (error) {
       console.error('Error fetching legacy blog posts:', error)
       return []
     }
 
-    return posts || []
+    // Filter out posts with null status and limit results
+    const filteredPosts = (posts || [])
+      .filter(post => post.status && ['publish', 'published', 'migrated'].includes(post.status))
+      .slice(0, limit)
+
+    return filteredPosts
   } catch (error) {
     console.error('Exception fetching legacy blog posts:', error)
     return []
@@ -838,16 +850,29 @@ export async function searchLegacyBlogPosts(query: string, limit: number = 20): 
         )
       `)
       .or('status.eq.publish,status.eq.published,status.eq.migrated')
+      .not('published_at', 'is', null)
       .or(`title.ilike.%${query}%,content.ilike.%${query}%,excerpt.ilike.%${query}%`)
       .order('published_at', { ascending: false })
-      .limit(limit)
+      .limit(limit * 2) // Get more to filter out nulls
 
     if (error) {
       console.error('Error searching legacy blog posts:', error)
       return []
     }
 
-    return posts || []
+    // Filter out posts with null status and limit results
+    const filteredPosts = (posts || [])
+      .filter(post => {
+        const hasValidStatus = post.status && ['publish', 'published', 'migrated'].includes(post.status)
+        if (!hasValidStatus) {
+          console.log('Filtering out legacy post with invalid status:', post.id, post.title, post.status)
+        }
+        return hasValidStatus
+      })
+      .slice(0, limit)
+
+    console.log(`searchLegacyBlogPosts: Found ${posts?.length} posts, filtered to ${filteredPosts.length}`)
+    return filteredPosts
   } catch (error) {
     console.error('Exception searching legacy blog posts:', error)
     return []

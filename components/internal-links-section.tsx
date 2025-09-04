@@ -28,6 +28,7 @@ interface InternalLinksSectionProps {
 export function InternalLinksSection({ data }: InternalLinksSectionProps) {
   const { title = "Related Travel Guides", links } = data
   const [enhancedLinks, setEnhancedLinks] = useState<InternalLink[]>([])
+  const [databaseLinks, setDatabaseLinks] = useState<InternalLink[]>([])
   const [loading, setLoading] = useState(true)
 
   // Default links if none provided - now with default images
@@ -76,14 +77,43 @@ export function InternalLinksSection({ data }: InternalLinksSectionProps) {
     }
   ]
 
-  // Use defaultLinks if no links provided, or merge with defaultLinks to ensure imageUrl properties
+  // Function to fetch internal links from database
+  const fetchDatabaseLinks = async () => {
+    try {
+      const { data: dbLinks, error } = await supabase
+        .from('internal_links')
+        .select('*')
+        .eq('is_published', true)
+        .order('display_order', { ascending: true })
+        .limit(6)
+
+      if (!error && dbLinks) {
+        const formattedLinks: InternalLink[] = dbLinks.map(link => ({
+          title: link.title,
+          description: link.description,
+          url: link.url,
+          category: link.category === 'destination-guides' ? 'related' : 'external',
+        }))
+        setDatabaseLinks(formattedLinks)
+      }
+    } catch (error) {
+      console.error('Error fetching database links:', error)
+    }
+  }
+
+  // Use database links if available, otherwise fallback to provided links or defaults
   const linksToShow = (links && links.length > 0) 
     ? links.map((link, index) => ({
         ...link,
         // If the incoming link doesn't have imageUrl, use corresponding defaultLink imageUrl
         imageUrl: link.imageUrl || defaultLinks[index % defaultLinks.length]?.imageUrl
       }))
-    : defaultLinks
+    : (databaseLinks.length > 0 
+        ? databaseLinks.map((link, index) => ({
+            ...link,
+            imageUrl: defaultLinks[index % defaultLinks.length]?.imageUrl
+          }))
+        : defaultLinks)
 
   // Function to extract slug from URL
   const extractSlugFromUrl = (url: string): string | null => {
@@ -132,10 +162,25 @@ export function InternalLinksSection({ data }: InternalLinksSectionProps) {
     }
   }
 
-  // Enhance links with hero images on component mount
+  // Fetch database links and enhance with hero images on component mount
+  useEffect(() => {
+    const initializeLinks = async () => {
+      setLoading(true)
+      
+      // Fetch database links if no links provided
+      if (!links || links.length === 0) {
+        await fetchDatabaseLinks()
+      }
+    }
+    
+    initializeLinks()
+  }, [links])
+
+  // Enhance links with hero images whenever linksToShow changes
   useEffect(() => {
     const enhanceLinksWithHeroImages = async () => {
-      setLoading(true)
+      if (linksToShow.length === 0) return
+      
       const enhanced = await Promise.all(
         linksToShow.slice(0, 3).map(async (link) => {
           const slug = extractSlugFromUrl(link.url)

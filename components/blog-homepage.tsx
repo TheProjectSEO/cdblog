@@ -1,12 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Search, Play, ChevronRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Play, ChevronRight, Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 
 interface BlogPost {
@@ -30,15 +29,12 @@ interface BlogHomepageProps {
 }
 
 export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categories }: BlogHomepageProps) {
-  const [searchQuery, setSearchQuery] = useState('')
   const [showVideoModal, setShowVideoModal] = useState(false)
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`
-    }
-  }
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchSuggestions, setSearchSuggestions] = useState<BlogPost[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(-1)
 
   const openVideoModal = () => {
     setShowVideoModal(true)
@@ -47,6 +43,105 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
   const closeVideoModal = () => {
     setShowVideoModal(false)
   }
+
+  // Search suggestions with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      if (!searchQuery.trim()) {
+        setSearchSuggestions([])
+        setShowSuggestions(false)
+        setIsSearching(false)
+        return
+      }
+
+      setIsSearching(true)
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=8`)
+        const data = await response.json()
+        
+        if (data.success) {
+          setSearchSuggestions(data.posts)
+          setShowSuggestions(data.posts.length > 0)
+          setSelectedIndex(-1)
+        } else {
+          console.error('Search failed:', data.error)
+          setSearchSuggestions([])
+          setShowSuggestions(false)
+        }
+      } catch (error) {
+        console.error('Search error:', error)
+        setSearchSuggestions([])
+        setShowSuggestions(false)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 200) // 200ms debounce for faster suggestions
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  const handleSearchInput = (query: string) => {
+    setSearchQuery(query)
+    setSelectedIndex(-1)
+    if (!query.trim()) {
+      setShowSuggestions(false)
+      setSearchSuggestions([])
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedIndex(prev => 
+          prev < searchSuggestions.length - 1 ? prev + 1 : prev
+        )
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedIndex(prev => prev > -1 ? prev - 1 : -1)
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (selectedIndex >= 0 && selectedIndex < searchSuggestions.length) {
+          const selectedPost = searchSuggestions[selectedIndex]
+          window.location.href = `/blog/${selectedPost.slug}`
+        }
+        break
+      case 'Escape':
+        setShowSuggestions(false)
+        setSelectedIndex(-1)
+        break
+    }
+  }
+
+  const clearSearch = () => {
+    setSearchQuery('')
+    setSearchSuggestions([])
+    setShowSuggestions(false)
+    setSelectedIndex(-1)
+    setIsSearching(false)
+  }
+
+  const handleSuggestionClick = (post: BlogPost) => {
+    window.location.href = `/blog/${post.slug}`
+  }
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('[data-search-container]')) {
+        setShowSuggestions(false)
+        setSelectedIndex(-1)
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   return (
     <div className="min-h-screen bg-white">
@@ -159,9 +254,6 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
           </Link>
         </nav>
         
-        <div className="w-[38px] h-[38px] border border-gray-400/60 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">
-          <Search className="w-5 h-5 text-white" />
-        </div>
       </header>
 
       {/* Hero Section */}
@@ -182,23 +274,132 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
             Articles, tips and tricks for travelers & property owners.
           </h1>
           
-          <form onSubmit={handleSearch} className="w-full max-w-[819px] mx-auto">
+          {/* Search Box */}
+          <div className="max-w-2xl mx-auto mb-8" data-search-container>
             <div className="relative">
-              <Input
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
                 type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search articles..."
-                className="w-full h-[48px] px-6 text-lg bg-white/90 backdrop-blur-sm border-0 rounded-full"
+                value={searchQuery}
+                onChange={(e) => handleSearchInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => {
+                  if (searchSuggestions.length > 0 && searchQuery.trim()) {
+                    setShowSuggestions(true)
+                  }
+                }}
+                className="block w-full pl-12 pr-12 py-4 border border-gray-200 rounded-full bg-white/95 backdrop-blur-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg text-lg"
+                autoComplete="off"
               />
-              <Button 
-                type="submit"
-                className="absolute right-2 top-1 h-10 px-6 bg-blue-600 hover:bg-blue-700 rounded-full"
-              >
-                Search
-              </Button>
+              
+              {/* Loading indicator */}
+              {isSearching && (
+                <div className="absolute inset-y-0 right-12 flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                </div>
+              )}
+              
+              {/* Clear button */}
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-400" />
+                </button>
+              )}
+              
+              {/* Search Suggestions Dropdown */}
+              {showSuggestions && searchSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 max-h-96 overflow-y-auto">
+                  {searchSuggestions.map((post, index) => (
+                    <button
+                      key={post.id}
+                      onClick={() => handleSuggestionClick(post)}
+                      className={`w-full text-left p-4 border-b border-gray-50 last:border-b-0 hover:bg-gray-50 transition-colors first:rounded-t-2xl last:rounded-b-2xl ${
+                        selectedIndex === index ? 'bg-blue-50 border-blue-100' : ''
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                          {post.featured_image?.file_url || post.featured_image_url ? (
+                            <Image
+                              src={post.featured_image?.file_url || post.featured_image_url || ''}
+                              alt={post.title}
+                              width={48}
+                              height={48}
+                              className="w-full h-full object-cover rounded-lg"
+                              onError={(e) => {
+                                const img = e.target as HTMLImageElement;
+                                img.style.display = 'none';
+                                const parent = img.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = '<Search class="h-5 w-5 text-gray-400" />';
+                                }
+                              }}
+                            />
+                          ) : (
+                            <Search className="h-5 w-5 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1">
+                            {post.title}
+                          </h4>
+                          {post.excerpt && (
+                            <p className="text-xs text-gray-600 line-clamp-2">
+                              {post.excerpt}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs text-gray-500">
+                              {new Date(post.published_at || post.created_at).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </span>
+                            {post.reading_time && (
+                              <>
+                                <span className="text-xs text-gray-300">•</span>
+                                <span className="text-xs text-gray-500">{post.reading_time} min read</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  
+                  {/* Show all results link */}
+                  <div className="p-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+                    <button 
+                      onClick={() => {
+                        // You can implement a full search results page here
+                        console.log('Show all results for:', searchQuery)
+                        setShowSuggestions(false)
+                      }}
+                      className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      See all results for "{searchQuery}"
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* No results found */}
+              {showSuggestions && searchSuggestions.length === 0 && !isSearching && searchQuery.trim() && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-6 text-center">
+                  <Search className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">No articles found for "{searchQuery}"</p>
+                  <p className="text-xs text-gray-500 mt-1">Try different keywords or check spelling</p>
+                </div>
+              )}
             </div>
-          </form>
+          </div>
         </div>
       </section>
 
@@ -309,7 +510,12 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <span>{post.author}</span>
                           <span>•</span>
-                          <span>{new Date(post.published_at).toLocaleDateString()}</span>
+                          <span>{new Date(post.published_at).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            timeZone: 'UTC'
+                          })}</span>
                         </div>
                       </div>
                     </div>
@@ -342,9 +548,9 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
                       Working remotely while traveling the world is a tempting idea for many people — especially for the globetrotters who dream about living a life.
                     </p>
                     <Link href="/blog/digital-nomad-visa">
-                      <Button variant="secondary" className="bg-white/20 text-white backdrop-blur-sm hover:bg-white/30">
+                      <div className="inline-block bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 px-6 py-3 rounded-lg transition-colors cursor-pointer">
                         Read More
-                      </Button>
+                      </div>
                     </Link>
                   </div>
                 </div>
@@ -377,7 +583,12 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                           <span>#{index + 1}</span>
                           <span>•</span>
-                          <span>{new Date(post.published_at).toLocaleDateString()}</span>
+                          <span>{new Date(post.published_at).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            timeZone: 'UTC'
+                          })}</span>
                         </div>
                       </div>
                     </div>

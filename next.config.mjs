@@ -1,3 +1,5 @@
+import { redirects as urlRedirects } from './redirects.mjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -9,6 +11,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
     domains: ['img.youtube.com'],
+  },
+  async redirects() {
+    return urlRedirects;
   },
   webpack: (config, { isServer }) => {
     // Handle lingo.dev SDK which contains Node.js modules

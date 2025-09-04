@@ -63,7 +63,7 @@ export function CategoryManager({
   // Update selected categories when prop changes
   useEffect(() => {
     setSelectedIds(selectedCategoryIds)
-  }, [selectedCategoryIds])
+  }, [JSON.stringify(selectedCategoryIds)])
 
   const fetchCategories = async () => {
     try {

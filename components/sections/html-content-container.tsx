@@ -13,7 +13,7 @@ function addIdsToHeadings(html: string): string {
       .trim()
   }
 
-  // Add IDs to h2 and h3 headings
+  // Add IDs to h2, h3, and h4 headings
   return html
     .replace(/<h2>([^<]+)<\/h2>/g, (match, text) => {
       const id = textToId(text)
@@ -22,6 +22,10 @@ function addIdsToHeadings(html: string): string {
     .replace(/<h3>([^<]+)<\/h3>/g, (match, text) => {
       const id = textToId(text)
       return `<h3 id="${id}">${text}</h3>`
+    })
+    .replace(/<h4>([^<]+)<\/h4>/g, (match, text) => {
+      const id = textToId(text)
+      return `<h4 id="${id}">${text}</h4>`
     })
 }
 
