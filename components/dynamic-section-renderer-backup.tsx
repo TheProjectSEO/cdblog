@@ -3,7 +3,7 @@
 import React from 'react'
 import { HeroSection } from './sections/hero-section'
 import { AuthorBlock } from './author-block'
-import { RichTextEditor } from './rich-text-editor'
+import RichTextEditor from './rich-text-editor'
 import { FAQSection } from './faq-section'
 // Removed old InternalLinking - now using InternalLinksSection
 import { ThingsToDoCards } from './things-to-do-cards'

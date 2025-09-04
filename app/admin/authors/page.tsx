@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, Edit2, Trash2, Save, X, MapPin, Calendar, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { AvatarUpload } from '@/components/avatar-upload'
 
 interface Author {
   id: string
@@ -290,11 +291,11 @@ export default function AuthorsManagement() {
           </div>
 
           <div>
-            <Label>Avatar URL</Label>
-            <Input
-              value={formData.avatar_url}
-              onChange={(e) => updateField('avatar_url', e.target.value)}
-              placeholder="/placeholder.svg"
+            <Label>Author Avatar</Label>
+            <AvatarUpload
+              currentAvatarUrl={formData.avatar_url}
+              authorName={formData.name || 'New Author'}
+              onAvatarChange={(newAvatarUrl) => updateField('avatar_url', newAvatarUrl)}
             />
           </div>
 

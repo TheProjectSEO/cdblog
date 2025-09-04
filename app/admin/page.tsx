@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { AuthWrapper } from '@/components/admin/AuthWrapper'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -217,7 +218,10 @@ const generateSlug = (title: string): string => {
     .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
 }
 
-export default function AdminPage() {
+function AdminPageContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  
   const [posts, setPosts] = useState<ModernPost[]>([])
   const [totalPostCount, setTotalPostCount] = useState(0)
   const [selectedPost, setSelectedPost] = useState<ModernPost | null>(null)
@@ -242,7 +246,17 @@ export default function AdminPage() {
   const [isUnpublishing, setIsUnpublishing] = useState(false)
   const [seoData, setSeoData] = useState<SEOFormData>({})
   const [showSEOTab, setShowSEOTab] = useState(false)
-  const [currentView, setCurrentView] = useState('dashboard')
+  const [currentView, setCurrentView] = useState(() => {
+    return searchParams.get('view') || 'dashboard'
+  })
+  
+  // Function to update view and URL
+  const updateView = (newView: string) => {
+    setCurrentView(newView)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('view', newView)
+    router.push(`/admin?${params.toString()}`)
+  }
   
   // Debug: Log view changes
   useEffect(() => {
@@ -269,6 +283,14 @@ export default function AdminPage() {
       label: 'Travel Guide',
       icon: FileText,
       view: 'travel-guide'
+    },
+    {
+      id: 'posts',
+      label: 'Posts',
+      icon: BookOpen,
+      view: 'posts',
+      external: true,
+      url: '/admin/posts'
     },
     {
       id: 'authors',
@@ -1217,7 +1239,7 @@ export default function AdminPage() {
               </div>
               <div className="mt-4 flex justify-center">
                 <Button 
-                  onClick={() => setCurrentView('translations')}
+                  onClick={() => updateView('translations')}
                   variant="outline"
                   className="border-[#5d2de6]/25 text-[#5d2de6] hover:bg-[#5d2de6]/8 hover:border-[#5d2de6]/50"
                 >
@@ -1251,7 +1273,7 @@ export default function AdminPage() {
               {isCreating ? 'Creating...' : 'Create New Travel Guide'}
             </Button>
             <Button 
-              onClick={() => setCurrentView('travel-guide')}
+              onClick={() => updateView('travel-guide')}
               variant="outline"
               className="w-full justify-start border-[#5d2de6]/25 text-[#5d2de6] hover:bg-[#5d2de6]/8 hover:border-[#5d2de6]/50"
             >
@@ -1259,7 +1281,7 @@ export default function AdminPage() {
               Add new travel guide article
             </Button>
             <Button 
-              onClick={() => setCurrentView('homepage')}
+              onClick={() => updateView('homepage')}
               variant="outline"
               className="w-full justify-start border-[#fb3aa2]/25 text-[#fb3aa2] hover:bg-[#fb3aa2]/8 hover:border-[#fb3aa2]/50"
             >
@@ -1327,7 +1349,7 @@ export default function AdminPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Coming Soon</h3>
             <p className="text-gray-600 mb-6">This feature is currently under development.</p>
             <Button 
-              onClick={() => setCurrentView('dashboard')}
+              onClick={() => updateView('dashboard')}
               variant="outline"
             >
               <Home className="w-4 h-4 mr-2" />
@@ -1371,7 +1393,7 @@ export default function AdminPage() {
                   if (item.external && item.url) {
                     window.open(item.url, '_blank')
                   } else {
-                    setCurrentView(item.view)
+                    updateView(item.view)
                   }
                 }}
                 className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
@@ -1432,26 +1454,91 @@ export default function AdminPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold text-[#0e0e0e] mb-2">Travel Guide Management</h1>
-                  <p className="text-[#262626]/70">Create and manage your travel blog content</p>
+                  <h1 className="text-2xl font-bold text-[#0e0e0e] mb-2">Modern Travel Guide Editor</h1>
+                  <p className="text-[#262626]/70">Create and manage travel guides with our new section-based system</p>
                 </div>
-                <Button 
-                  onClick={createNewPost}
-                  disabled={isCreating}
-                  className="bg-gradient-to-r from-[#5d2de6] to-[#fb3aa2] hover:from-[#5d2de6]/90 hover:to-[#fb3aa2]/90 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  {isCreating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5 mr-2" />
-                      Create New Blog
-                    </>
-                  )}
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button 
+                    onClick={createNewPost}
+                    disabled={isCreating}
+                    className="bg-gradient-to-r from-[#5d2de6] to-[#fb3aa2] hover:from-[#5d2de6]/90 hover:to-[#fb3aa2]/90 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    {isCreating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-5 h-5 mr-2" />
+                        Create New Guide
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    onClick={() => window.open('/admin/travel-guide-unified', '_blank')}
+                    className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white shadow-lg"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Unified Editor
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => updateView('template-control')}
+                    className="border-[#5d2de6]/25 text-[#5d2de6] hover:bg-[#5d2de6]/8"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Templates
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Quick Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-600 text-sm font-medium">Total Guides</p>
+                        <p className="text-2xl font-bold text-blue-900">{posts.length}</p>
+                      </div>
+                      <FileText className="w-8 h-8 text-blue-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-600 text-sm font-medium">Published</p>
+                        <p className="text-2xl font-bold text-green-900">{posts.filter(p => p.status === 'published').length}</p>
+                      </div>
+                      <Globe className="w-8 h-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-yellow-600 text-sm font-medium">Drafts</p>
+                        <p className="text-2xl font-bold text-yellow-900">{posts.filter(p => p.status === 'draft').length}</p>
+                      </div>
+                      <Edit className="w-8 h-8 text-yellow-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-600 text-sm font-medium">Featured</p>
+                        <p className="text-2xl font-bold text-purple-900">{posts.filter(p => p.is_featured).length || 0}</p>
+                      </div>
+                      <Star className="w-8 h-8 text-purple-500" />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Search Bar */}
@@ -1510,10 +1597,10 @@ export default function AdminPage() {
                     <CardContent className="p-8 text-center">
                       <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        {searchQuery ? 'No posts found' : 'No blog posts yet'}
+                        {searchQuery ? 'No travel guides found' : 'No travel guides yet'}
                       </h3>
                       <p className="text-gray-600 mb-6">
-                        {searchQuery ? 'Try a different search term' : 'Create your first travel blog post to get started'}
+                        {searchQuery ? 'Try a different search term' : 'Create your first modern travel guide with our section-based editor'}
                       </p>
                       {!searchQuery && (
                         <Button 
@@ -1522,7 +1609,7 @@ export default function AdminPage() {
                           className="bg-gradient-to-r from-[#5d2de6] to-[#fb3aa2] hover:from-[#5d2de6]/90 hover:to-[#fb3aa2]/90 text-white shadow-lg hover:shadow-xl transition-all duration-200"
                         >
                           <Plus className="w-4 h-4 mr-2" />
-                          Create Your First Post
+                          Create Your First Travel Guide
                         </Button>
                       )}
                     </CardContent>
@@ -1547,9 +1634,21 @@ export default function AdminPage() {
                                 <Badge className={isTranslation ? 'border-[#fb3aa2]/25 text-[#fb3aa2] bg-[#fb3aa2]/8' : (post.status === 'published' ? 'bg-[#05381A]/15 text-[#05381A] border-[#05381A]/25' : 'bg-[#262626]/15 text-[#262626] border-[#262626]/25')}>
                                   {isTranslation ? `${post.language.toUpperCase()} Translation` : post.status}
                                 </Badge>
+                                {post.is_featured && (
+                                  <Badge className="bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300">
+                                    <Star className="w-3 h-3 mr-1" />
+                                    Featured
+                                  </Badge>
+                                )}
                                 {isTranslation && (
                                   <Badge className={post.status === 'completed' ? 'bg-[#05381A]/15 text-[#05381A] border-[#05381A]/25' : post.status === 'failed' ? 'bg-red-100 text-red-700 border-red-300' : 'bg-[#262626]/15 text-[#262626] border-[#262626]/25'}>
                                     {post.status}
+                                  </Badge>
+                                )}
+                                {!isTranslation && post.sections && post.sections.length > 0 && (
+                                  <Badge className="bg-blue-100 text-blue-700 border-blue-300">
+                                    <Layout className="w-3 h-3 mr-1" />
+                                    {post.sections.length} sections
                                   </Badge>
                                 )}
                               </div>
@@ -1589,6 +1688,34 @@ export default function AdminPage() {
                                 <Eye className="w-4 h-4 mr-2" />
                                 Preview
                               </Button>
+                              
+                              {!isTranslation && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300"
+                                  onClick={() => window.open(`/admin/travel-guide-unified?postId=${post.id}`, '_blank')}
+                                >
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Unified Editor
+                                </Button>
+                              )}
+                              
+                              {!isTranslation && post.sections && post.sections.length > 0 && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
+                                  onClick={() => {
+                                    updateView('post-editor')
+                                    loadPostDetails(post.id)
+                                  }}
+                                >
+                                  <Layout className="w-4 h-4 mr-2" />
+                                  Sections ({post.sections.length})
+                                </Button>
+                              )}
+                              
                               {!isTranslation && post.status === 'draft' && (
                                 <Button 
                                   variant="default" 
@@ -1601,25 +1728,22 @@ export default function AdminPage() {
                                   {isPublishing ? 'Publishing...' : 'Publish'}
                                 </Button>
                               )}
+                              
                               <Button 
                                 size="sm" 
                                 className="bg-gradient-to-r from-[#5d2de6] to-[#fb3aa2] hover:from-[#5d2de6]/90 hover:to-[#fb3aa2]/90 text-white shadow-md hover:shadow-lg transition-all duration-200"
                                 onClick={() => {
                                   if (isTranslation) {
-                                    // For translations, we now have two options:
-                                    // 1. Edit the translated content directly
-                                    // 2. Edit the original post
-                                    // For now, let's edit the original post but we could add a dropdown for both options
-                                    setCurrentView('post-editor')
+                                    updateView('post-editor')
                                     loadPostDetails(post.originalPostId)
                                   } else {
-                                    setCurrentView('post-editor')
+                                    updateView('post-editor')
                                     loadPostDetails(post.id)
                                   }
                                 }}
                               >
                                 <Edit className="w-4 h-4 mr-2" />
-                                {isTranslation ? 'Edit Original' : 'Edit'}
+                                {isTranslation ? 'Edit Original' : 'Edit Post'}
                               </Button>
                               {isTranslation && post.status === 'completed' && (
                                 <Button 
@@ -1644,14 +1768,44 @@ export default function AdminPage() {
                 )}
               </div>
 
-              {/* Stats */}
+              {/* Advanced Stats */}
               {posts.length > 0 && (
-                <Card className="bg-white border border-black/8 shadow-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between text-sm text-[#262626]/70">
-                      <span>Total Posts: <span className="font-medium text-[#0e0e0e]">{posts.length}</span></span>
-                      <span>Published: <span className="font-medium text-[#05381A]">{posts.filter(p => p.status === 'published').length}</span></span>
-                      <span>Drafts: <span className="font-medium text-[#5d2de6]">{posts.filter(p => p.status === 'draft').length}</span></span>
+                <Card className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200">
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-2">
+                          <FileText className="w-5 h-5 text-blue-500 mr-2" />
+                          <span className="font-medium text-gray-900">Total Guides</span>
+                        </div>
+                        <span className="text-2xl font-bold text-blue-600">{posts.length}</span>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-2">
+                          <Globe className="w-5 h-5 text-green-500 mr-2" />
+                          <span className="font-medium text-gray-900">Published</span>
+                        </div>
+                        <span className="text-2xl font-bold text-green-600">{posts.filter(p => p.status === 'published').length}</span>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-2">
+                          <Layout className="w-5 h-5 text-purple-500 mr-2" />
+                          <span className="font-medium text-gray-900">With Sections</span>
+                        </div>
+                        <span className="text-2xl font-bold text-purple-600">{posts.filter(p => p.sections && p.sections.length > 0).length}</span>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-2">
+                          <Star className="w-5 h-5 text-yellow-500 mr-2" />
+                          <span className="font-medium text-gray-900">Featured</span>
+                        </div>
+                        <span className="text-2xl font-bold text-yellow-600">{posts.filter(p => p.is_featured).length || 0}</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <p className="text-xs text-gray-500 text-center">
+                        Modern section-based travel guides with enhanced editing capabilities
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -1756,7 +1910,7 @@ export default function AdminPage() {
               <div className="mb-6">
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentView('dashboard')}
+                  onClick={() => updateView('dashboard')}
                   className="mb-4"
                 >
                   ← Back to Dashboard
@@ -1774,7 +1928,7 @@ export default function AdminPage() {
               <div className="mb-6">
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentView('dashboard')}
+                  onClick={() => updateView('dashboard')}
                   className="mb-4"
                 >
                   ← Back to Dashboard
@@ -1798,7 +1952,7 @@ export default function AdminPage() {
               <div className="mb-6">
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentView('dashboard')}
+                  onClick={() => updateView('dashboard')}
                   className="mb-4 border-[#5d2de6]/25 text-[#5d2de6] hover:bg-[#5d2de6]/8 hover:border-[#5d2de6]/50"
                 >
                   ← Back to Dashboard
@@ -1848,7 +2002,7 @@ export default function AdminPage() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setCurrentView('travel-guide')
+                      updateView('travel-guide')
                       setSelectedPost(null)
                       setSections([])
                       setSelectedCategoryIds([])
@@ -1954,7 +2108,7 @@ export default function AdminPage() {
                     onClick={() => {
                       if (!selectedPost) return
                       // Navigate to delete section with this post
-                      setCurrentView('manage-articles')
+                      updateView('manage-articles')
                       setPostToDelete(selectedPost)
                     }}
                     variant="destructive"
@@ -2212,6 +2366,7 @@ export default function AdminPage() {
                                               <p className="text-sm text-gray-600">
                                                 Type: {(() => {
                                                   const templateMap = {
+                                                    // Legacy Templates
                                                     '6f579a71-463c-43b4-b203-c2cb46c80d47': 'Hero',
                                                     '58e1b71c-600b-48d3-a956-f9b27bc368b2': 'Author',
                                                     'b87245be-1b68-47d4-83a6-fac582a0847f': 'Starter Pack',
@@ -2225,7 +2380,16 @@ export default function AdminPage() {
                                                     '03d9efa8-2c31-489d-94af-d2d85f52aa9c': 'AI CTA',
                                                     'c2caf0b9-68b6-48c1-999c-4cc48bd12242': 'Internal Links',
                                                     '710f8880-c86d-4353-b16f-474c74debd31': 'FAQ',
-                                                    'f2e8c9d1-4a3b-4c5d-8e7f-9a1b2c3d4e5f': 'Rich Text Editor'
+                                                    'f2e8c9d1-4a3b-4c5d-8e7f-9a1b2c3d4e5f': 'Rich Text Editor',
+                                                    
+                                                    // Modern HTML-Style Templates
+                                                    '12345678-1234-4321-8765-123456789abc': 'HTML Hero Section',
+                                                    '23456789-2345-4321-8765-123456789bcd': 'Table of Contents',
+                                                    '34567890-3456-4321-8765-123456789cde': 'Why Choose',
+                                                    '45678901-4567-4321-8765-123456789def': 'Tip Boxes',
+                                                    '56789012-5678-4321-8765-123456789ef0': 'Budget Timeline',
+                                                    '5251d41a-d7f8-44b6-bfaf-636d50c859b1': 'Comparison Table',
+                                                    '8642ef7e-6198-4cd4-b0f9-8ba6bb868951': 'HTML Content Container'
                                                   }
                                                   return templateMap[section.template_id] || 'Unknown'
                                                 })()}
@@ -2333,7 +2497,7 @@ export default function AdminPage() {
                   <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-yellow-900 mb-2">Unknown View</h3>
                   <p className="text-yellow-700 mb-4">The view "{currentView}" is not recognized.</p>
-                  <Button onClick={() => setCurrentView('dashboard')} variant="outline">
+                  <Button onClick={() => updateView('dashboard')} variant="outline">
                     Return to Dashboard
                   </Button>
                 </CardContent>
@@ -2374,21 +2538,96 @@ export default function AdminPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-2 gap-4 py-4">
-            {[
-              { id: '6f579a71-463c-43b4-b203-c2cb46c80d47', name: 'Hero', description: 'Title, subtitle, and background image' },
-              { id: '58e1b71c-600b-48d3-a956-f9b27bc368b2', name: 'Author', description: 'Author information and bio' },
-              { id: 'b87245be-1b68-47d4-83a6-fac582a0847f', name: 'Starter Pack', description: 'Introduction section with badge' },
-              { id: 'e30d9e40-eb3a-41d3-aeac-413cfca52fe0', name: 'Blog Content (HTML)', description: 'HTML content section for migrated WordPress posts' },
-              { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Rich Text Editor', description: 'WYSIWYG editor for new content creation' },
-              { id: 'e596d688-31d9-4722-926d-18868f50f0cf', name: 'Attractions', description: 'List of attractions and activities' },
-              { id: '5251d41a-d7f8-44b6-bfaf-636d50c859b1', name: 'Places', description: 'Notable places and locations' },
-              { id: '833666f2-e112-40c0-9d50-02f160b96f3a', name: 'Where to Stay', description: 'Accommodation recommendations' },
-              { id: 'e2036f8e-e01e-4a04-8cf7-814f77b4343b', name: 'Hotels', description: 'Hotel listings and reviews' },
-              { id: '03d9efa8-2c31-489d-94af-d2d85f52aa9c', name: 'AI CTA', description: 'Call-to-action with AI features' },
-              { id: 'c2caf0b9-68b6-48c1-999c-4cc48bd12242', name: 'Internal Links', description: 'Related post links' },
-              { id: '710f8880-c86d-4353-b16f-474c74debd31', name: 'FAQ', description: 'Frequently asked questions' }
-            ].map((template) => (
+          <div className="py-4">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">🚀 Modern Templates</h3>
+              <p className="text-sm text-gray-600 mb-4">New section-based templates with enhanced functionality</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: '12345678-1234-4321-8765-123456789abc', name: 'HTML Hero Section', description: 'Modern hero with full customization' },
+                  { id: '23456789-2345-4321-8765-123456789bcd', name: 'Table of Contents', description: 'Auto-generated navigation' },
+                  { id: '34567890-3456-4321-8765-123456789cde', name: 'Why Choose', description: 'Destination highlights and benefits' },
+                  { id: '45678901-4567-4321-8765-123456789def', name: 'Tip Boxes', description: 'Pro tips and insider secrets' },
+                  { id: '56789012-5678-4321-8765-123456789ef0', name: 'Budget Timeline', description: 'Budget planning and timeline' },
+                  { id: '5251d41a-d7f8-44b6-bfaf-636d50c859b1', name: 'Comparison Table', description: 'Data comparison tables' },
+                  { id: '8642ef7e-6198-4cd4-b0f9-8ba6bb868951', name: 'HTML Content Container', description: 'Rich HTML content areas' },
+                ].map((template) => (
+                  <Card 
+                    key={template.id} 
+                    className="cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:border-purple-300 transition-all duration-200 transform hover:scale-105"
+                    onClick={async () => {
+                      if (!selectedPost) return
+                      try {
+                        const { data: existingSections } = await supabase
+                          .from('modern_post_sections')
+                          .select('position')
+                          .eq('post_id', selectedPost.id)
+                          .order('position', { ascending: false })
+                          .limit(1)
+                        
+                        const nextPosition = existingSections && existingSections.length > 0 
+                          ? existingSections[0].position + 1 
+                          : 0
+                        
+                        const { error } = await supabase
+                          .from('modern_post_sections')
+                          .insert({
+                            post_id: selectedPost.id,
+                            template_id: template.id,
+                            title: template.name,
+                            position: nextPosition,
+                            is_active: true,
+                            mobile_hidden: false,
+                            tablet_hidden: false,
+                            data: {}
+                          })
+                        
+                        if (error) {
+                          console.error('Database error creating section:', error)
+                          throw error
+                        }
+                        
+                        // Reload sections
+                        await loadPostDetails(selectedPost.id)
+                        setShowSectionDialog(false)
+                      } catch (error) {
+                        console.error('Error creating section:', error)
+                        const errorMessage = error?.message || 'Unknown error'
+                        alert(`Failed to create section: ${errorMessage}`)
+                      }
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 mt-2"></div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-900 mb-1 text-sm">{template.name}</h4>
+                          <p className="text-xs text-gray-600">{template.description}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">📝 Legacy Templates</h3>
+              <p className="text-sm text-gray-600 mb-4">Classic section templates (being deprecated)</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: '6f579a71-463c-43b4-b203-c2cb46c80d47', name: 'Hero', description: 'Title, subtitle, and background image' },
+                  { id: '58e1b71c-600b-48d3-a956-f9b27bc368b2', name: 'Author', description: 'Author information and bio' },
+                  { id: 'b87245be-1b68-47d4-83a6-fac582a0847f', name: 'Starter Pack', description: 'Introduction section with badge' },
+                  { id: 'e30d9e40-eb3a-41d3-aeac-413cfca52fe0', name: 'Blog Content (HTML)', description: 'HTML content section for migrated WordPress posts' },
+                  { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Rich Text Editor', description: 'WYSIWYG editor for new content creation' },
+                  { id: 'e596d688-31d9-4722-926d-18868f50f0cf', name: 'Attractions', description: 'List of attractions and activities' },
+                  { id: '833666f2-e112-40c0-9d50-02f160b96f3a', name: 'Where to Stay', description: 'Accommodation recommendations' },
+                  { id: 'e2036f8e-e01e-4a04-8cf7-814f77b4343b', name: 'Hotels', description: 'Hotel listings and reviews' },
+                  { id: '03d9efa8-2c31-489d-94af-d2d85f52aa9c', name: 'AI CTA', description: 'Call-to-action with AI features' },
+                  { id: 'c2caf0b9-68b6-48c1-999c-4cc48bd12242', name: 'Internal Links', description: 'Related post links' },
+                  { id: '710f8880-c86d-4353-b16f-474c74debd31', name: 'FAQ', description: 'Frequently asked questions' }
+                ].map((template) => (
               <Card 
                 key={template.id} 
                 className="cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors"
@@ -2439,7 +2678,9 @@ export default function AdminPage() {
                   <p className="text-sm text-gray-600">{template.description}</p>
                 </CardContent>
               </Card>
-            ))}
+                ))}
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -2548,5 +2789,24 @@ export default function AdminPage() {
       </Dialog>
     </div>
     </AuthWrapper>
+  )
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={
+      <AuthWrapper>
+        <div className="container mx-auto p-6 space-y-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p>Loading admin dashboard...</p>
+            </div>
+          </div>
+        </div>
+      </AuthWrapper>
+    }>
+      <AdminPageContent />
+    </Suspense>
   )
 }

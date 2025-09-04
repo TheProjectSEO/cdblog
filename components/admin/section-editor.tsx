@@ -44,7 +44,15 @@ const TEMPLATE_ID_TO_TYPE: Record<string, string> = {
   'e2036f8e-e01e-4a04-8cf7-814f77b4343b': 'hotels',
   '03d9efa8-2c31-489d-94af-d2d85f52aa9c': 'ai-cta',
   'c2caf0b9-68b6-48c1-999c-4cc48bd12242': 'internal-links',
-  '710f8880-c86d-4353-b16f-474c74debd31': 'faq'
+  '710f8880-c86d-4353-b16f-474c74debd31': 'faq',
+  // Modern HTML-style templates
+  '12345678-1234-4321-8765-123456789abc': 'html-hero-section',
+  '23456789-2345-4321-8765-123456789bcd': 'table-of-contents',
+  '34567890-3456-4321-8765-123456789cde': 'why-choose',
+  '45678901-4567-4321-8765-123456789def': 'tip-boxes',
+  '56789012-5678-4321-8765-123456789ef0': 'budget-timeline',
+  '5251d41a-d7f8-44b6-bfaf-636d50c859b1': 'comparison-table',
+  '8642ef7e-6198-4cd4-b0f9-8ba6bb868951': 'html-content-container'
 }
 
 const getSectionType = (templateId: string): string => {
@@ -263,201 +271,6 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
           </div>
         </div>
 
-        {/* Text Size Controls Section */}
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Text Size Controls (Translation Optimization)</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label className="text-blue-900 font-medium">Title Size</Label>
-              <select
-                value={editedData.textSizes?.title || 'responsive'}
-                onChange={(e) => updateField('textSizes', { ...editedData.textSizes, title: e.target.value })}
-                className="mt-1 w-full p-2 border border-blue-200 rounded-md focus:border-blue-500 focus:ring-blue-500"
-              >
-                {textSizeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label className="text-blue-900 font-medium">Subtitle Size</Label>
-              <select
-                value={editedData.textSizes?.subtitle || 'responsive'}
-                onChange={(e) => updateField('textSizes', { ...editedData.textSizes, subtitle: e.target.value })}
-                className="mt-1 w-full p-2 border border-blue-200 rounded-md focus:border-blue-500 focus:ring-blue-500"
-              >
-                {textSizeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label className="text-blue-900 font-medium">Badges Size</Label>
-              <select
-                value={editedData.textSizes?.badges || 'sm'}
-                onChange={(e) => updateField('textSizes', { ...editedData.textSizes, badges: e.target.value })}
-                className="mt-1 w-full p-2 border border-blue-200 rounded-md focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="xs">Extra Small</option>
-                <option value="sm">Small</option>
-                <option value="base">Base</option>
-                <option value="lg">Large</option>
-                <option value="xl">Extra Large</option>
-              </select>
-            </div>
-          </div>
-          
-        </div>
-
-        {/* Badge Management Section */}
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">Badge Management</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Main Badge */}
-            <Card className="p-4 border-blue-200">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-blue-900 font-medium">Main Badge</Label>
-                <Switch
-                  checked={editedData.badges?.main?.show !== false}
-                  onCheckedChange={(checked) => 
-                    updateField('badges', { 
-                      ...editedData.badges, 
-                      main: { ...editedData.badges?.main, show: checked } 
-                    })
-                  }
-                />
-              </div>
-              <Input
-                value={editedData.badges?.main?.text || ''}
-                onChange={(e) => updateField('badges', { 
-                  ...editedData.badges, 
-                  main: { ...editedData.badges?.main, text: e.target.value } 
-                })}
-                placeholder="🏔️ Your travel adventure starts here"
-                className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-                disabled={editedData.badges?.main?.show === false}
-              />
-            </Card>
-
-            {/* Location Badge */}
-            <Card className="p-4 border-blue-200">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-blue-900 font-medium">Location Badge</Label>
-                <Switch
-                  checked={editedData.badges?.location?.show !== false}
-                  onCheckedChange={(checked) => 
-                    updateField('badges', { 
-                      ...editedData.badges, 
-                      location: { ...editedData.badges?.location, show: checked } 
-                    })
-                  }
-                />
-              </div>
-              <p className="text-sm text-blue-600">Uses location field from Basic Information</p>
-            </Card>
-
-            {/* Calendar Badge */}
-            <Card className="p-4 border-blue-200">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-blue-900 font-medium">Calendar Badge</Label>
-                <Switch
-                  checked={editedData.badges?.calendar?.show !== false}
-                  onCheckedChange={(checked) => 
-                    updateField('badges', { 
-                      ...editedData.badges, 
-                      calendar: { ...editedData.badges?.calendar, show: checked } 
-                    })
-                  }
-                />
-              </div>
-              <Input
-                value={editedData.badges?.calendar?.text || ''}
-                onChange={(e) => updateField('badges', { 
-                  ...editedData.badges, 
-                  calendar: { ...editedData.badges?.calendar, text: e.target.value } 
-                })}
-                placeholder="Perfect year-round"
-                className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-                disabled={editedData.badges?.calendar?.show === false}
-              />
-            </Card>
-
-            {/* Users Badge */}
-            <Card className="p-4 border-blue-200">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-blue-900 font-medium">Users Badge</Label>
-                <Switch
-                  checked={editedData.badges?.users?.show !== false}
-                  onCheckedChange={(checked) => 
-                    updateField('badges', { 
-                      ...editedData.badges, 
-                      users: { ...editedData.badges?.users, show: checked } 
-                    })
-                  }
-                />
-              </div>
-              <Input
-                value={editedData.badges?.users?.text || ''}
-                onChange={(e) => updateField('badges', { 
-                  ...editedData.badges, 
-                  users: { ...editedData.badges?.users, text: e.target.value } 
-                })}
-                placeholder="For every traveler"
-                className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-                disabled={editedData.badges?.users?.show === false}
-              />
-            </Card>
-
-            {/* Rating Badge */}
-            <Card className="p-4 border-blue-200">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-blue-900 font-medium">Rating Badge</Label>
-                <Switch
-                  checked={editedData.badges?.rating?.show !== false}
-                  onCheckedChange={(checked) => 
-                    updateField('badges', { 
-                      ...editedData.badges, 
-                      rating: { ...editedData.badges?.rating, show: checked } 
-                    })
-                  }
-                />
-              </div>
-              <Input
-                value={editedData.badges?.rating?.text || ''}
-                onChange={(e) => updateField('badges', { 
-                  ...editedData.badges, 
-                  rating: { ...editedData.badges?.rating, text: e.target.value } 
-                })}
-                placeholder="4.9/5 from travelers"
-                className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-                disabled={editedData.badges?.rating?.show === false}
-              />
-            </Card>
-
-            {/* Author Badge */}
-            <Card className="p-4 border-blue-200">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-blue-900 font-medium">Author Badge (Top Row)</Label>
-                <Switch
-                  checked={editedData.badges?.author?.show !== false}
-                  onCheckedChange={(checked) => 
-                    updateField('badges', { 
-                      ...editedData.badges, 
-                      author: { ...editedData.badges?.author, show: checked } 
-                    })
-                  }
-                />
-              </div>
-              <p className="text-sm text-blue-600">Shows in top badge row after rating. Clickable to scroll to author section.</p>
-            </Card>
-          </div>
-        </div>
 
         {/* CTA Button Section */}
         <div className="space-y-6">
@@ -2403,6 +2216,163 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
     </div>
   )
 
+  // Modern HTML-style template editors
+  const renderTableOfContentsEditor = () => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <Label className="text-blue-900 font-medium">Table of Contents Title</Label>
+          <Input
+            value={editedData.title || ''}
+            onChange={(e) => updateField('title', e.target.value)}
+            placeholder="What you'll discover in this guide"
+            className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <Label className="text-blue-900 font-medium">Description</Label>
+          <textarea
+            value={editedData.description || ''}
+            onChange={(e) => updateField('description', e.target.value)}
+            placeholder="Navigate through our comprehensive guide to make the most of your journey"
+            className="mt-1 w-full border border-blue-200 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+            rows={3}
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderWhyChooseEditor = () => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <Label className="text-blue-900 font-medium">Section Title</Label>
+          <Input
+            value={editedData.title || ''}
+            onChange={(e) => updateField('title', e.target.value)}
+            placeholder="Why choose this destination?"
+            className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <Label className="text-blue-900 font-medium">Content</Label>
+          <textarea
+            value={editedData.content || ''}
+            onChange={(e) => updateField('content', e.target.value)}
+            placeholder="Explain why this destination is special..."
+            className="mt-1 w-full border border-blue-200 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+            rows={6}
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderTipBoxesEditor = () => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <Label className="text-blue-900 font-medium">Section Title</Label>
+          <Input
+            value={editedData.title || ''}
+            onChange={(e) => updateField('title', e.target.value)}
+            placeholder="Pro Tips & Insider Secrets"
+            className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <Label className="text-blue-900 font-medium">Tips Content</Label>
+          <textarea
+            value={editedData.content || ''}
+            onChange={(e) => updateField('content', e.target.value)}
+            placeholder="Add your helpful tips here..."
+            className="mt-1 w-full border border-blue-200 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+            rows={8}
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderBudgetTimelineEditor = () => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <Label className="text-blue-900 font-medium">Section Title</Label>
+          <Input
+            value={editedData.title || ''}
+            onChange={(e) => updateField('title', e.target.value)}
+            placeholder="Budget & Timeline Planner"
+            className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <Label className="text-blue-900 font-medium">Budget Information</Label>
+          <textarea
+            value={editedData.content || ''}
+            onChange={(e) => updateField('content', e.target.value)}
+            placeholder="Add budget breakdown and timeline information..."
+            className="mt-1 w-full border border-blue-200 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+            rows={6}
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderComparisonTableEditor = () => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <Label className="text-blue-900 font-medium">Table Title</Label>
+          <Input
+            value={editedData.title || ''}
+            onChange={(e) => updateField('title', e.target.value)}
+            placeholder="Comparison Table"
+            className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <Label className="text-blue-900 font-medium">Table Content</Label>
+          <textarea
+            value={editedData.content || ''}
+            onChange={(e) => updateField('content', e.target.value)}
+            placeholder="Add comparison table data..."
+            className="mt-1 w-full border border-blue-200 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+            rows={8}
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderHtmlContentContainerEditor = () => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <Label className="text-blue-900 font-medium">Container Title</Label>
+          <Input
+            value={editedData.title || ''}
+            onChange={(e) => updateField('title', e.target.value)}
+            placeholder="Content Section"
+            className="mt-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <Label className="text-blue-900 font-medium">HTML Content</Label>
+          <textarea
+            value={editedData.content || ''}
+            onChange={(e) => updateField('content', e.target.value)}
+            placeholder="Add your HTML content here..."
+            className="mt-1 w-full border border-blue-200 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500 font-mono text-sm"
+            rows={10}
+          />
+        </div>
+      </div>
+    </div>
+  )
+
   const renderEditor = () => {
     switch (sectionType) {
       case 'hero':
@@ -2412,7 +2382,16 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
       case 'starter-pack':
         return renderStarterPackEditor()
       case 'blog-content':
-        return renderBlogContentEditor()
+        // HTML Content section hidden - content should be moved to Rich Text Editor
+        return (
+          <div className="p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg text-center">
+            <p className="text-gray-600 text-sm">
+              📝 This HTML Content section has been disabled. 
+              <br />
+              Please use the <strong>Rich Text Editor</strong> section for content editing.
+            </p>
+          </div>
+        )
       case 'rich-text-editor':
         return renderRichTextEditor()
       case 'ai-cta':
@@ -2425,6 +2404,23 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
         return renderHotelsEditor()
       case 'attractions':
         return renderAttractionsEditor()
+      
+      // Modern HTML-style templates
+      case 'html-hero-section':
+        return renderHeroEditor() // Reuse hero editor for HTML hero sections
+      case 'table-of-contents':
+        return renderTableOfContentsEditor()
+      case 'why-choose':
+        return renderWhyChooseEditor()
+      case 'tip-boxes':
+        return renderTipBoxesEditor()
+      case 'budget-timeline':
+        return renderBudgetTimelineEditor()
+      case 'comparison-table':
+        return renderComparisonTableEditor()
+      case 'html-content-container':
+        return renderHtmlContentContainerEditor()
+      
       default:
         return renderGenericEditor()
     }

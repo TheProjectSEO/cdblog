@@ -46,8 +46,8 @@ export function HeroSection({
   const finalDescription = data?.subtitle || description || post?.excerpt || "Discover incredible experiences"
   const finalLocation = data?.location || location || "Destination"
   
-  // Enhanced customization options
-  const badges = data?.badges || {
+  // Default badges configuration (fixed values)
+  const badges = {
     main: { text: '🏔️ Your travel adventure starts here', show: false },
     location: { show: true },
     calendar: { text: 'Perfect year-round', show: false },
@@ -56,53 +56,31 @@ export function HeroSection({
     author: { show: true }
   }
   
-  const textSizes = data?.textSizes || {
-    title: 'responsive',
-    subtitle: 'responsive',
-    badges: 'sm'
+  // CTA buttons configuration - ensure proper fallback
+  const ctaButtons = {
+    primary: {
+      text: data?.ctaButtons?.primary?.text || 'Start planning your trip',
+      url: data?.ctaButtons?.primary?.url || 'https://cuddlynest.com',
+      show: data?.ctaButtons?.primary?.show !== false // Default to true unless explicitly false
+    }
   }
   
-  const ctaButtons = data?.ctaButtons || {
-    primary: { text: 'Start planning your trip', url: 'https://cuddlynest.com', show: true }
-  }
+  // Debug logging for CTA button data
+  console.log('Hero Section CTA Debug:', {
+    rawData: data?.ctaButtons,
+    processedCTA: ctaButtons,
+    shouldShow: ctaButtons.primary.show
+  })
   
   const bottomText = data?.bottomText || {
     text: '🎁 Free to use • No signup required • Personalized just for you',
     show: false
   }
   
-  // Helper function to get text size classes
-  const getTextSizeClass = (sizeType: string, element: 'title' | 'subtitle' | 'badges') => {
-    const size = textSizes[element] || 'responsive'
-    
-    switch (element) {
-      case 'title':
-        switch (size) {
-          case 'small': return 'text-3xl sm:text-4xl md:text-5xl'
-          case 'medium': return 'text-4xl sm:text-5xl md:text-6xl'
-          case 'large': return 'text-5xl sm:text-6xl md:text-7xl'
-          case 'xl': return 'text-6xl sm:text-7xl md:text-8xl'
-          default: return 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl' // responsive
-        }
-      case 'subtitle':
-        switch (size) {
-          case 'small': return 'text-base sm:text-lg'
-          case 'medium': return 'text-lg sm:text-xl'
-          case 'large': return 'text-xl sm:text-2xl'
-          case 'xl': return 'text-2xl sm:text-3xl'
-          default: return 'text-lg sm:text-xl md:text-2xl' // responsive
-        }
-      case 'badges':
-        switch (size) {
-          case 'xs': return 'text-xs'
-          case 'sm': return 'text-sm'
-          case 'base': return 'text-base'
-          case 'lg': return 'text-lg'
-          case 'xl': return 'text-xl'
-          default: return 'text-sm'
-        }
-    }
-  }
+  // Fixed text size classes (simplified)
+  const getTitleSizeClass = () => 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl'
+  const getSubtitleSizeClass = () => 'text-lg sm:text-xl md:text-2xl'
+  const getBadgeSizeClass = () => 'text-sm'
   
   // Get destination-specific hero image - prioritize database image first
   const getHeroImageForDestination = () => {
@@ -211,28 +189,28 @@ export function HeroSection({
             {/* Main badge - conditional rendering */}
             {badges?.main?.show && (
               <div className="mb-6">
-                <Badge className={`bg-brand-pink/90 backdrop-blur-md text-brand-deep-purple border-0 font-medium px-4 py-2 shadow-lg cursor-default hover:bg-brand-pink/90 hover:text-brand-deep-purple ${getTextSizeClass('', 'badges')}`}>
+                <Badge className={`bg-brand-pink/90 backdrop-blur-md text-brand-deep-purple border-0 font-medium px-4 py-2 shadow-lg cursor-default hover:bg-brand-pink/90 hover:text-brand-deep-purple ${getBadgeSizeClass()}`}>
                   {mainBadgeText}
                 </Badge>
               </div>
             )}
 
-            {/* Hero Title - dynamic sizing */}
-            <h1 className={`${getTextSizeClass('', 'title')} font-bold mb-6 leading-tight font-sans`}>
+            {/* Hero Title - fixed sizing */}
+            <h1 className={`${getTitleSizeClass()} font-bold mb-6 leading-tight font-sans`}>
               {finalTitle.split(' ').slice(0, -2).join(' ')}
               <span className="bg-gradient-to-r from-brand-pink to-white bg-clip-text text-transparent">
                 {' ' + finalTitle.split(' ').slice(-2).join(' ')}
               </span>
             </h1>
 
-            {/* Hero Description - dynamic sizing */}
-            <p className={`${getTextSizeClass('', 'subtitle')} mb-8 text-gray-200 max-w-3xl font-light leading-relaxed`}>
+            {/* Hero Description - fixed sizing */}
+            <p className={`${getSubtitleSizeClass()} mb-8 text-gray-200 max-w-3xl font-light leading-relaxed`}>
               {finalDescription}
             </p>
 
             
             {/* Badges container - aligned with CTA section */}
-            <div className={`flex items-center gap-2 sm:gap-3 mb-8 overflow-x-auto scrollbar-hide pr-8 ${getTextSizeClass('', 'badges')}`} style={{ scrollBehavior: 'smooth' }}>
+            <div className={`flex items-center gap-2 sm:gap-3 mb-8 overflow-x-auto scrollbar-hide pr-8 ${getBadgeSizeClass()}`} style={{ scrollBehavior: 'smooth' }}>
               {badges?.location?.show && (
                 <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 shadow-lg flex-shrink-0">
                   <MapPin className="w-4 h-4 text-white" />
@@ -274,9 +252,9 @@ export function HeroSection({
               )}
             </div>
 
-            {/* CTA Buttons - only primary button */}
+            {/* CTA Buttons - always show unless explicitly hidden */}
             <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
-              {ctaButtons?.primary?.show && (
+              {ctaButtons.primary.show && (
                 <Link 
                   href={ctaButtons.primary.url || 'https://cuddlynest.com'} 
                   target="_blank" 
@@ -290,6 +268,15 @@ export function HeroSection({
                     {ctaButtons.primary.text}
                   </Button>
                 </Link>
+              )}
+              
+              {/* Debug info - remove this in production */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="fixed bottom-4 right-4 bg-black/80 text-white p-2 rounded text-xs max-w-xs">
+                  CTA Debug: {ctaButtons.primary.show ? '✅ Showing' : '❌ Hidden'} | 
+                  Text: "{ctaButtons.primary.text}" | 
+                  URL: "{ctaButtons.primary.url}"
+                </div>
               )}
             </div>
 

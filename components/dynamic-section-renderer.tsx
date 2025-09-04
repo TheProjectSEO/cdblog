@@ -1,9 +1,9 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { HeroSection } from './sections/hero-section'
 import { AuthorBlock } from './author-block'
-import { RichTextEditor } from './rich-text-editor'
+import RichTextEditor from './rich-text-editor'
 import { FAQSection } from './faq-section'
 import { ThingsToDoCards } from './things-to-do-cards'
 import { HotelCarouselNew } from './hotel-carousel-new'
@@ -21,6 +21,82 @@ import { WhyChooseSection } from './sections/why-choose-section'
 import { ComparisonTableSection } from './sections/comparison-table-section'
 import { TipBoxesSection } from './sections/tip-boxes-section'
 import { BudgetTimelineSection } from './sections/budget-timeline-section'
+
+// Helper function to detect generic FAQ content that should be hidden
+function isGenericFAQContent(faqs: any[]): boolean {
+  if (!faqs || faqs.length === 0) return true
+  
+  // Only filter out truly generic template phrases - be very specific
+  const reallyGenericPhrases = [
+    'the destination is beautiful year-round',
+    'budget requirements vary based on your preferences',
+    'every destination has its magic',
+    'experiences that change your life',
+    'this is a placeholder faq'
+  ]
+  
+  // Only hide if ALL FAQs contain generic template language
+  const allGeneric = faqs.every(faq => {
+    const question = (faq.question || '').toLowerCase()
+    const answer = (faq.answer || '').toLowerCase()
+    
+    return reallyGenericPhrases.some(generic => 
+      question.includes(generic) || answer.includes(generic)
+    ) || (question.length < 10 && answer.length < 20) // Very short/empty content
+  })
+  
+  console.log(`FAQ filtering debug for ${faqs.length} FAQs:`, {
+    firstQuestion: faqs[0]?.question,
+    firstAnswer: faqs[0]?.answer?.substring(0, 100),
+    allGeneric,
+    willShow: !allGeneric
+  })
+  
+  return allGeneric
+}
+
+// Helper function to detect generic starter pack content that should be hidden
+function isGenericStarterPackContent(data: any): boolean {
+  if (!data) return true
+  
+  const description = (data.description || '').toLowerCase()
+  const title = (data.title || '').toLowerCase()
+  
+  // Only filter out extremely generic template phrases
+  const reallyGenericPhrases = [
+    'every destination has its magic',
+    'experiences that change your life',
+    'this is a placeholder'
+  ]
+  
+  const hasGenericDescription = reallyGenericPhrases.some(phrase => 
+    description.includes(phrase)
+  )
+  
+  // Check for generic starter pack items - only filter completely empty or template items
+  const items = data.items || data.highlights || []
+  const hasGenericItems = items.length === 0 || items.every((item: any) => {
+    const itemTitle = (item.title || '').toLowerCase()
+    const itemValue = (item.value || item.text || '').toLowerCase() 
+    const itemDesc = (item.description || '').toLowerCase()
+    
+    return (
+      (itemTitle === 'perfect duration' && itemValue === '5-7 days' && itemDesc === 'just right to fall in love') ||
+      (itemTitle === 'budget range' && itemValue === '€100-300' && itemDesc === 'per day, your way') ||
+      (itemTitle === 'must-see spots' && itemValue === '10+ places' && itemDesc === 'instagram-worthy moments') ||
+      (itemTitle === 'vibe check' && itemValue === 'pure magic' && itemDesc === 'you\'ll never want to leave')
+    )
+  })
+  
+  console.log(`StarterPack filtering debug:`, {
+    hasGenericDescription,
+    hasGenericItems,
+    itemsCount: items.length,
+    willShow: !(hasGenericDescription && hasGenericItems)
+  })
+  
+  return hasGenericDescription && hasGenericItems
+}
 
 interface ModernSection {
   id: string
@@ -186,11 +262,203 @@ function isHtmlStylePost(sections: ModernSection[]): boolean {
   return hasHtmlComponents
 }
 
+// Helper function to extract headings from HTML content
+function extractHeadingsFromHTML(content: string): Array<{id: string, title: string, level: number}> {
+  const matches: Array<{id: string, title: string, level: number}> = []
+  
+  // Pattern for headings H2-H6 with or without IDs
+  const headingRegex = /<(h[2-6])([^>]*)>([^<]+)<\/h[2-6]>/gi
+  let match
+  
+  while ((match = headingRegex.exec(content)) !== null) {
+    const [, tag, attributes, title] = match
+    const level = parseInt(tag.charAt(1))
+    
+    // Check if heading has an ID
+    const idMatch = attributes.match(/id=["']([^"']+)["']/)
+    const id = idMatch ? idMatch[1] : title.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '-')
+      .substring(0, 50)
+    
+    matches.push({
+      id,
+      title: title.trim().replace(/<[^>]*>/g, ''),
+      level
+    })
+  }
+  
+  return matches
+}
+
+// Helper function to extract headings from all sections
+function extractTOCFromSections(sections: ModernSection[]): Array<{id: string, title: string, level: number}> {
+  const allHeadings: Array<{id: string, title: string, level: number}> = []
+  
+  sections.forEach(section => {
+    if (!section.is_active) return
+    
+    // Extract from section data content
+    if (section.data?.content) {
+      const headings = extractHeadingsFromHTML(section.data.content)
+      allHeadings.push(...headings)
+    }
+    
+    // Extract from section title if it's a heading level
+    if (section.title && section.data?.headingLevel) {
+      const level = section.data.headingLevel
+      if (level >= 2 && level <= 6) {
+        allHeadings.push({
+          id: section.title.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-'),
+          title: section.title,
+          level: level
+        })
+      }
+    }
+  })
+  
+  return allHeadings.sort((a, b) => a.level - b.level)
+}
+
+// Dynamic TOC Component for section-based pages
+function DynamicTOC({ headings }: { headings: Array<{id: string, title: string, level: number}> }) {
+  console.log('🎯 DynamicTOC received headings:', headings)
+  
+  if (headings.length === 0) {
+    console.log('🚫 No headings provided to DynamicTOC')
+    return null
+  }
+
+  const scrollToHeading = (id: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    console.log('📍 Attempting to scroll to:', id)
+    const element = document.getElementById(id)
+    if (element) {
+      console.log('✅ Found element, scrolling to:', element)
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      })
+    } else {
+      console.log('❌ Element not found in DOM:', id)
+    }
+  }
+
+  return (
+    <div className="mb-8 bg-blue-50 p-6 rounded-lg">
+      <h3 className="text-xl font-semibold mb-4 mt-0 text-gray-900">On this page</h3>
+      <ul className="space-y-2">
+        {headings.map((heading, index) => {
+          console.log(`🔗 Rendering TOC item ${index + 1}:`, heading)
+          return (
+            <li 
+              key={`${heading.id}-${heading.level}-${index}`}
+              style={{ marginLeft: `${(heading.level - 2) * 16}px` }}
+            >
+              <a 
+                href={`#${heading.id}`}
+                onClick={(e) => scrollToHeading(heading.id, e)}
+                className="text-blue-600 hover:text-blue-800 transition hover:underline flex items-center"
+              >
+                → {heading.title} (H{heading.level})
+              </a>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 export function DynamicSectionRenderer({ sections, post, language = 'en' }: DynamicSectionRendererProps) {
   console.log('🚀 DynamicSectionRenderer Starting:', {
     sectionsCount: sections.length,
     postTitle: post?.title
   })
+  
+  // State to hold dynamically extracted headings
+  const [tocHeadings, setTocHeadings] = useState<Array<{id: string, title: string, level: number}>>(() => extractTOCFromSections(sections))
+  const contentContainerRef = useRef<HTMLDivElement | null>(null)
+  
+  // Extract headings from rendered DOM content
+  useEffect(() => {
+    console.log('🔍 Starting client-side heading extraction...')
+    
+    const extractHeadingsFromDOM = () => {
+      const headings: Array<{id: string, title: string, level: number}> = []
+      
+      // Find all H2-H6 headings in the page content (scope to content container if available)
+      const scope: ParentNode = contentContainerRef.current || document
+      const headingElements = scope.querySelectorAll('h2, h3, h4, h5, h6')
+      
+      headingElements.forEach((element, index) => {
+        const tagName = element.tagName.toLowerCase()
+        const level = parseInt(tagName.charAt(1))
+        const title = element.textContent?.trim() || ''
+        
+        // Get existing ID or generate one
+        let id = element.id
+        if (!id && title) {
+          id = title.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, '-')
+            .substring(0, 50)
+          
+          // Add index to avoid duplicates
+          if (index > 0) {
+            id += `-${index}`
+          }
+          
+          // Set the ID on the element so links work
+          element.id = id
+        }
+        
+        if (title && id) {
+          headings.push({ id, title, level })
+        }
+      })
+      
+      console.log('🎯 Extracted headings from DOM:', headings)
+      return headings
+    }
+    
+    // Small delay to ensure all sections are rendered
+    const timer = setTimeout(() => {
+      const domHeadings = extractHeadingsFromDOM()
+      const merged = [...extractTOCFromSections(sections), ...domHeadings]
+      const seen = new Set<string>()
+      const unique = merged.filter(h => {
+        const key = `${h.id}|${h.title}|${h.level}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      setTocHeadings(unique)
+    }, 300)
+    
+    // Observe mutations so late-rendered headings are captured
+    let observer: MutationObserver | null = null
+    if (contentContainerRef.current) {
+      observer = new MutationObserver(() => {
+        const domHeadings = extractHeadingsFromDOM()
+        const merged = [...extractTOCFromSections(sections), ...domHeadings]
+        const seen = new Set<string>()
+        const unique = merged.filter(h => {
+          const key = `${h.id}|${h.title}|${h.level}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        setTocHeadings(unique)
+      })
+      observer.observe(contentContainerRef.current, { childList: true, subtree: true })
+    }
+
+    return () => {
+      clearTimeout(timer)
+      if (observer) observer.disconnect()
+    }
+  }, [sections]) // Re-run when sections change
 
   const renderSection = (section: ModernSection) => {
     try {
@@ -202,13 +470,10 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
         return null
       }
 
-      // Skip Related Articles and Internal Links sections - removed per user request
+      // Skip Related Articles section - removed per user request  
       if (template.component_name === 'RelatedArticlesSection' || 
-          template.component_name === 'InternalLinksSection' ||
           template.name?.includes('related-articles') ||
-          template.name?.includes('internal-links') ||
-          section.template_id === 'related-articles-123-456-789' ||
-          section.template_id === 'c2caf0b9-68b6-48c1-999c-4cc48bd12242') {
+          section.template_id === 'related-articles-123-456-789') {
         console.log(`🚫 Skipping section: ${template.component_name} (${section.template_id})`)
         return null
       }
@@ -279,6 +544,11 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
         )
 
       case 'StarterPackSection':
+        // Don't render starter pack section if it contains generic template content
+        if (isGenericStarterPackContent(sectionData)) {
+          console.log(`🚫 Skipping StarterPackSection for post: ${post?.slug} - Generic template content detected`)
+          return null
+        }
         return <StarterPackSection key={section.id} data={sectionData} />
 
       case 'HotelCarousel':
@@ -331,6 +601,14 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
           question: faq.question || faq.title,
           answer: faq.answer || faq.content
         })) || []
+        
+        // Don't render FAQ section if no FAQs or only generic template FAQs
+        const hasLegitimateContent = faqs.length > 0 && !isGenericFAQContent(faqs)
+        if (!hasLegitimateContent) {
+          console.log(`🚫 Skipping FAQ section for post: ${post?.slug} - Generic or empty content detected`)
+          return null
+        }
+        
         return <FAQSection key={section.id} faqs={faqs} />
 
       case 'InternalLinksSection':
@@ -404,6 +682,12 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
         {/* White background container for all content */}
         <div className="bg-white min-h-screen">
           <HtmlContentContainer>
+            {/* Auto-generated TOC for pages with headings */}
+            {tocHeadings.length > 0 && (
+              <DynamicTOC headings={tocHeadings} />
+            )}
+            
+            <div ref={contentContainerRef}>
             {contentSections.map(section => {
               const renderedSection = renderSection(section)
               return renderedSection ? (
@@ -412,6 +696,7 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
                 </div>
               ) : null
             })}
+            </div>
           </HtmlContentContainer>
         </div>
       </>
@@ -464,7 +749,12 @@ export function DynamicSectionRenderer({ sections, post, language = 'en' }: Dyna
       
       {/* Unified container for all content sections */}
       {contentSections.length > 0 && (
-        <div className="container mx-auto px-4 py-8 relative -mt-16 z-30 bg-white rounded-t-3xl shadow-xl">
+        <div ref={contentContainerRef} className="container mx-auto px-4 py-8 relative -mt-16 z-30 bg-white rounded-t-3xl shadow-xl">
+          {/* Auto-generated TOC for pages with headings */}
+          {tocHeadings.length > 0 && (
+            <DynamicTOC headings={tocHeadings} />
+          )}
+          
           {contentSections.map((section, index) => {
             const renderedSection = renderSection(section)
             if (!renderedSection) return null

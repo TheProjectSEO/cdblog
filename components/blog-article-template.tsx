@@ -111,7 +111,7 @@ function ArticleTableOfContents({ tocItems }: { tocItems: TOCItem[] }) {
   return (
     <div className="mb-8" style={{ minHeight: '189px' }}>
       {/* TOC Title */}
-      <div style={{ width: '136px', height: '29px', marginBottom: '72px' }}>
+      <div style={{ width: '136px', height: '29px', marginBottom: '32px' }}>
         <h3 
           className="text-[#242526]"
           style={{
@@ -131,14 +131,11 @@ function ArticleTableOfContents({ tocItems }: { tocItems: TOCItem[] }) {
           {tocItems.map((item, index) => (
             <div 
               key={item.id}
-              style={{ 
-                height: '23px', 
-                marginBottom: index < tocItems.length - 1 ? '24px' : '0px' 
-              }}
+              className="pb-6 last:pb-0"
             >
               <button 
                 onClick={(e) => handleClick(item.id, e)}
-                className={`text-left w-full ${
+                className={`text-left w-full block ${
                   activeSection === item.id 
                     ? 'text-[#242526] hover:text-[#242526]' 
                     : 'text-[#797882] hover:text-[#242526]'
@@ -153,13 +150,14 @@ function ArticleTableOfContents({ tocItems }: { tocItems: TOCItem[] }) {
                   border: 'none',
                   cursor: 'pointer',
                   padding: 0,
-                  paddingLeft: item.level === 2 ? '16px' : '0px' // Indent H2s
+                  paddingLeft: item.level === 2 ? '0px' : item.level === 3 ? '16px' : item.level === 4 ? '32px' : item.level === 5 ? '48px' : item.level === 6 ? '64px' : '0px', // Progressive indentation
+                  paddingBottom: '8px'
                 }}
               >
                 {item.title}
               </button>
               {index < tocItems.length - 1 && (
-                <div className="w-full h-[1px] bg-[#DFE2E5] mt-2"></div>
+                <div className="w-full h-[1px] bg-[#DFE2E5]"></div>
               )}
             </div>
           ))}
@@ -170,31 +168,54 @@ function ArticleTableOfContents({ tocItems }: { tocItems: TOCItem[] }) {
 }
 
 export function BlogArticleTemplate({ article, availableTranslations = [] }: BlogArticleTemplateProps) {
-  const [searchQuery, setSearchQuery] = useState('')
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      // In the future, this will connect to the database
-      // For now, redirect to a search results page
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`
-    }
-  }
   // Extract headings from content to generate TOC
   const extractTOCFromContent = (content: string): TOCItem[] => {
-    const headingRegex = /<(h[12])[^>]*id="([^"]*)"[^>]*>([^<]+)<\/h[12]>/gi
     const matches = []
-    let match
     
-    while ((match = headingRegex.exec(content)) !== null) {
+    // Try multiple patterns to catch headings with or without IDs
+    const patterns = [
+      // Pattern 1: Headings with id attributes
+      /<(h[1-6])[^>]*id=["']([^"']*)["'][^>]*>([^<]+)<\/h[1-6]>/gi,
+      // Pattern 2: Headings without id attributes (generate id from title)
+      /<(h[1-6])[^>]*>([^<]+)<\/h[1-6]>/gi
+    ]
+    
+    // First try to find headings with IDs
+    let match
+    const headingRegexWithId = /<(h[2-6])[^>]*id=["']([^"']*)["'][^>]*>([^<]+)<\/h[2-6]>/gi
+    
+    while ((match = headingRegexWithId.exec(content)) !== null) {
       const [, tag, id, title] = match
       matches.push({
         id,
-        title: title.trim(),
+        title: title.trim().replace(/<[^>]*>/g, ''), // Strip any HTML tags
         level: parseInt(tag.charAt(1))
       })
     }
     
+    // If no headings with IDs found, try headings without IDs (H2-H6)
+    if (matches.length === 0) {
+      const headingRegexNoId = /<(h[2-6])[^>]*>([^<]+)<\/h[2-6]>/gi
+      let matchIndex = 0
+      
+      while ((match = headingRegexNoId.exec(content)) !== null) {
+        const [, tag, title] = match
+        const cleanTitle = title.trim().replace(/<[^>]*>/g, '')
+        const generatedId = cleanTitle.toLowerCase()
+          .replace(/[^a-z0-9\s]/g, '')
+          .replace(/\s+/g, '-')
+          .substring(0, 50) + (matchIndex > 0 ? `-${matchIndex}` : '')
+        
+        matches.push({
+          id: generatedId,
+          title: cleanTitle,
+          level: parseInt(tag.charAt(1))
+        })
+        matchIndex++
+      }
+    }
+    
+    console.log('TOC Debug - Extracted headings:', matches)
     return matches
   }
 
@@ -362,36 +383,35 @@ export function BlogArticleTemplate({ article, availableTranslations = [] }: Blo
               height: '38px'
             }}
           >
-            {/* Search Field */}
-            <form onSubmit={handleSearchSubmit}>
-              <div
+            {/* Search Field - Display only (non-functional) */}
+            <div
+              style={{
+                position: 'absolute',
+                width: '314px',
+                height: '38px',
+                backgroundColor: '#F7F7F7',
+                border: '1px solid #E9E9EB',
+                borderRadius: '19px'
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Search on the blog"
+                readOnly
+                disabled
+                className="w-full h-full bg-transparent outline-none cursor-default"
                 style={{
-                  position: 'absolute',
-                  width: '314px',
-                  height: '38px',
-                  backgroundColor: '#F7F7F7',
-                  border: '1px solid #E9E9EB',
-                  borderRadius: '19px'
+                  paddingLeft: '22px',
+                  paddingRight: '50px',
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: '16px',
+                  fontWeight: 400,
+                  lineHeight: '1.25em',
+                  color: '#797882',
+                  backgroundColor: 'transparent'
                 }}
-              >
-                <input
-                  type="text"
-                  placeholder="Search on the blog"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-full bg-transparent outline-none"
-                  style={{
-                    paddingLeft: '22px',
-                    paddingRight: '50px',
-                    fontFamily: 'Poppins, sans-serif',
-                    fontSize: '16px',
-                    fontWeight: 400,
-                    lineHeight: '1.25em',
-                    color: '#797882'
-                  }}
-                />
-              </div>
-            </form>
+              />
+            </div>
             
             {/* Search Icon */}
             <div
@@ -441,7 +461,7 @@ export function BlogArticleTemplate({ article, availableTranslations = [] }: Blo
           {/* Navigation Links */}
           {/* Categories -> Editorial Policy */}
           <Link
-            href="/editorial-policy"
+            href="/blog/editorial-policy"
             style={{
               position: 'absolute',
               left: '1280px',
@@ -462,7 +482,7 @@ export function BlogArticleTemplate({ article, availableTranslations = [] }: Blo
 
           {/* About us */}
           <Link
-            href="/about-us"
+            href="https://www.cuddlynest.com/pages/about-us"
             style={{
               position: 'absolute',
               left: '1386px',
@@ -483,7 +503,7 @@ export function BlogArticleTemplate({ article, availableTranslations = [] }: Blo
         </header>
 
         {/* Main Content Area - Using flex layout, starting directly after header */}
-        <div className="flex" style={{ marginTop: '36px', paddingLeft: '160px', paddingRight: '152px', gap: '77px' }}>
+        <div className="flex" style={{ marginTop: '20px', paddingLeft: '160px', paddingRight: '152px', gap: '77px' }}>
           
           {/* Article Content - 851px wide */}
           <div style={{ width: '851px', flex: 'none' }}>
@@ -661,19 +681,19 @@ export function BlogArticleTemplate({ article, availableTranslations = [] }: Blo
                 </div>
               )}
 
-              {/* App Download CTA - Exact Figma Implementation */}
+              {/* Discount Code CTA - Gradient Background */}
               <div 
                 className="relative rounded-[20px] mb-6"
                 style={{ 
                   width: '361px',
                   height: '317px',
-                  background: 'linear-gradient(135deg, rgba(232, 237, 237, 1) 0%, rgba(244, 244, 244, 1) 100%)',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   overflow: 'visible'
                 }}
               >
-                {/* Main App Description Text */}
+                {/* Main Discount Text - Left Side */}
                 <div 
-                  className="absolute text-[#64748B]"
+                  className="absolute text-white"
                   style={{ 
                     left: '29px',
                     top: '50px',
@@ -685,99 +705,84 @@ export function BlogArticleTemplate({ article, availableTranslations = [] }: Blo
                     lineHeight: '1.2em'
                   }}
                 >
-                  Millions of places to stay, one app.
+                  Save 15% on your next booking!
                 </div>
                 
-                {/* CTA Text */}
-                <div 
-                  className="absolute text-[#64748B]"
-                  style={{ 
-                    left: '26px',
-                    top: '226px',
-                    width: '77px',
-                    height: '13px',
-                    fontFamily: 'Poppins, sans-serif',
-                    fontWeight: 600,
-                    fontSize: '8.76px',
-                    lineHeight: '1.5em',
-                    letterSpacing: '0.01em'
-                  }}
-                >
-                  Get the app now.
-                </div>
-                
-                {/* App Store Badges - Using actual Figma images */}
-                <div 
-                  className="absolute flex gap-[5.76px]"
-                  style={{ 
-                    left: '26px',
-                    top: '249.48px'
-                  }}
-                >
-                  {/* Apple Store Badge */}
-                  <a 
-                    href="https://apps.apple.com/app/cuddlynest" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    <img 
-                      src="/blog-images/app-store-badge.png"
-                      alt="Download on the App Store"
-                      style={{ 
-                        width: '82px',
-                        height: '27px'
-                      }}
-                      className="hover:opacity-90 transition-opacity"
-                    />
-                  </a>
-                  
-                  {/* Google Play Badge */}
-                  <a 
-                    href="https://play.google.com/store/apps/details?id=com.cuddlynest" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    <img 
-                      src="/blog-images/google-play-badge.png"
-                      alt="Get it on Google Play"
-                      style={{ 
-                        width: '92px',
-                        height: '27px'
-                      }}
-                      className="hover:opacity-90 transition-opacity"
-                    />
-                  </a>
-                </div>
-                
-                {/* iPhone Mockup - Using correct iPhone 17 image with percentage positioning */}
+                {/* Discount Code Section - Right Side */}
                 <div 
                   className="absolute"
                   style={{ 
-                    left: '57.52%',
-                    right: '-7.37%',
-                    top: '9.28%',
-                    bottom: '-27.1%'
+                    right: '26px',
+                    top: '80px',
+                    width: '140px',
+                    textAlign: 'center'
                   }}
                 >
-                  <img 
-                    src="/blog-images/iphone-17-mockup.png"
-                    alt="CuddlyNest mobile app"
+                  <div 
+                    className="text-white mb-3"
                     style={{ 
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain'
+                      fontFamily: 'Poppins, sans-serif',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      lineHeight: '1.5em'
                     }}
-                  />
+                  >
+                    Use code:
+                  </div>
+                  
+                  {/* Discount Code with Copy Button */}
+                  <div 
+                    className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-3 flex items-center justify-between cursor-pointer hover:bg-white/30 transition-all mb-4"
+                    onClick={() => {
+                      navigator.clipboard.writeText('CUDDLY15');
+                      // Show feedback (you could add a toast here)
+                      const btn = event.target.closest('div');
+                      const originalText = btn.innerHTML;
+                      btn.innerHTML = '<span style="color: white; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 4px;"><span>Copied!</span> <span>✓</span></span>';
+                      setTimeout(() => {
+                        btn.innerHTML = originalText;
+                      }, 2000);
+                    }}
+                  >
+                    <span 
+                      className="text-white font-mono"
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: '16px',
+                        fontWeight: 700,
+                        letterSpacing: '1px'
+                      }}
+                    >
+                      CUDDLY15
+                    </span>
+                    <span 
+                      className="text-white/80"
+                      style={{ fontSize: '12px' }}
+                    >
+                      📋
+                    </span>
+                  </div>
+                  
+                  {/* CTA Button */}
+                  <a 
+                    href="https://cuddlynest.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="bg-white text-purple-700 px-4 py-2 rounded-full hover:bg-gray-100 transition-colors w-full"
+                    style={{
+                      fontFamily: 'Poppins, sans-serif',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      display: 'inline-block',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Book Now & Save
+                  </a>
                 </div>
               </div>
 
-              {/* Ad Banner */}
-              <div 
-                className="bg-gray-100 rounded-lg flex items-center justify-center"
-                style={{ height: '300px' }}
-              >
-                <span className="text-gray-400">Advertisement</span>
-              </div>
             </div>
           </div>
           
@@ -918,7 +923,7 @@ export function BlogArticleTemplate({ article, availableTranslations = [] }: Blo
                 {/* Links */}
                 <div className="flex gap-6">
                   <Link 
-                    href="/editorial-policy"
+                    href="/blog/editorial-policy"
                     className="text-[#0066CC] hover:text-[#0052A3] transition-colors"
                     style={{
                       fontFamily: 'Poppins, sans-serif',
