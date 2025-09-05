@@ -49,3 +49,4 @@ Icon?
 *.DS_Store
 .mcp.json
 
+.vercel
