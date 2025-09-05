@@ -608,17 +608,17 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                  { name: "DUBLIN", subtitle: "912 Stays", image: "https://images.unsplash.com/photo-1549918864-48ac978761a4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/dublin-ct1372595407" },
-                  { name: "LONDON", subtitle: "8819 Stays", image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/london-ct1826645935" },
-                  { name: "AMSTERDAM", subtitle: "1128 Stays", image: "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/amsterdam-ct1528355309" },
-                  { name: "BARCELONA", subtitle: "2804 Stays", image: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/barcelona-ct1724594040" },
-                  { name: "BANGKOK", subtitle: "4035 Stays", image: "https://images.unsplash.com/photo-1508009603885-50cf7c579365?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/bangkok-ct1764068610" },
-                  { name: "BALI", subtitle: "4283 Stays", image: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/bali-ct1360015008" },
-                  { name: "LISBON", subtitle: "2812 Stays", image: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/lisbon-ct1620619017" },
-                  { name: "MADRID", subtitle: "2751 Stays", image: "https://images.unsplash.com/photo-1543785734-4b6e564642f8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/madrid-ct1724616994" },
-                  { name: "NEW YORK", subtitle: "1626 Stays", image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/new-york-ct1840034016" }
+                  { name: "DUBLIN", subtitle: "912 Stays", image: "https://images.unsplash.com/photo-1549918864-48ac978761a4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "https://www.cuddlynest.com/l/dublin-ct1372595407" },
+                  { name: "LONDON", subtitle: "8819 Stays", image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "https://www.cuddlynest.com/l/london-ct1826645935" },
+                  { name: "AMSTERDAM", subtitle: "1128 Stays", image: "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "https://www.cuddlynest.com/l/amsterdam-ct1528355309" },
+                  { name: "BARCELONA", subtitle: "2804 Stays", image: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "https://www.cuddlynest.com/l/barcelona-ct1724594040" },
+                  { name: "BANGKOK", subtitle: "4035 Stays", image: "https://images.unsplash.com/photo-1508009603885-50cf7c579365?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "https://www.cuddlynest.com/l/bangkok-ct1764068610" },
+                  { name: "BALI", subtitle: "4283 Stays", image: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "https://www.cuddlynest.com/l/bali-ct1360015008" },
+                  { name: "LISBON", subtitle: "2812 Stays", image: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "https://www.cuddlynest.com/l/lisbon-ct1620619017" },
+                  { name: "MADRID", subtitle: "2751 Stays", image: "https://images.unsplash.com/photo-1543785734-4b6e564642f8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "https://www.cuddlynest.com/l/madrid-ct1724616994" },
+                  { name: "NEW YORK", subtitle: "1626 Stays", image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "https://www.cuddlynest.com/l/new-york-ct1840034016" }
                 ].map((destination) => (
-                  <Link key={destination.name} href={destination.url}>
+                  <Link key={destination.name} href={destination.url} target="_blank" rel="noopener noreferrer">
                     <div className="relative aspect-[4/3] rounded-2xl overflow-hidden group cursor-pointer">
                       <Image
                         src={destination.image}
@@ -682,17 +682,17 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
               <div className="space-y-3">
                 {/* Row 1 */}
                 <div className="flex flex-wrap gap-2">
-                  <Link href="/l/las-vegas-ct1840020364">
+                  <Link href="https://www.cuddlynest.com/l/las-vegas-ct1840020364" target="_blank" rel="noopener noreferrer">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Las Vegas
                     </button>
                   </Link>
-                  <Link href="/l/madrid-ct1724616994">
+                  <Link href="https://www.cuddlynest.com/l/madrid-ct1724616994" target="_blank" rel="noopener noreferrer">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Madrid
                     </button>
                   </Link>
-                  <Link href="/l/barcelona-ct1724594040">
+                  <Link href="https://www.cuddlynest.com/l/barcelona-ct1724594040" target="_blank" rel="noopener noreferrer">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Barcelona
                     </button>
@@ -701,17 +701,17 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
                 
                 {/* Row 2 */}
                 <div className="flex flex-wrap gap-2">
-                  <Link href="/l/bangkok-ct1764068610">
+                  <Link href="https://www.cuddlynest.com/l/bangkok-ct1764068610" target="_blank" rel="noopener noreferrer">
                     <button className="px-5 py-2 rounded-full bg-pink-500 text-white font-semibold text-sm hover:bg-pink-600 transition-colors">
                       Bangkok
                     </button>
                   </Link>
-                  <Link href="/l/los-angeles-ct1840020491">
+                  <Link href="https://www.cuddlynest.com/l/los-angeles-ct1840020491" target="_blank" rel="noopener noreferrer">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Los Angeles
                     </button>
                   </Link>
-                  <Link href="/l/new-york-ct1840034016">
+                  <Link href="https://www.cuddlynest.com/l/new-york-ct1840034016" target="_blank" rel="noopener noreferrer">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       New York
                     </button>
@@ -720,17 +720,17 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
                 
                 {/* Row 3 */}
                 <div className="flex flex-wrap gap-2">
-                  <Link href="/l/london-ct1826645935">
+                  <Link href="https://www.cuddlynest.com/l/london-ct1826645935" target="_blank" rel="noopener noreferrer">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       London
                     </button>
                   </Link>
-                  <Link href="/l/miami-ct1840015149">
+                  <Link href="https://www.cuddlynest.com/l/miami-ct1840015149" target="_blank" rel="noopener noreferrer">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Miami
                     </button>
                   </Link>
-                  <Link href="/l/bali-ct1360015008">
+                  <Link href="https://www.cuddlynest.com/l/bali-ct1360015008" target="_blank" rel="noopener noreferrer">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Bali
                     </button>
