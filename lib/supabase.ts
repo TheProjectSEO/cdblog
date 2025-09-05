@@ -133,6 +133,46 @@ export interface ModernCategory {
   slug: string
   description?: string
   color?: string
+  // SEO fields  
+  meta_title?: string
+  meta_description?: string
+  canonical_url?: string
+  og_title?: string
+  og_description?: string
+  og_image?: string
+  // Content fields
+  custom_content?: string
+  excerpt?: string
+  // Visual and organization
+  featured_image?: string
+  parent_category_id?: string
+  // Publishing controls
+  is_published: boolean
+  is_featured?: boolean
+  visibility?: 'public' | 'private' | 'draft'
+  // Analytics and engagement
+  post_count?: number
+  view_count?: number
+  sort_order?: number
+  // Timestamps
+  created_at: string
+  updated_at: string
+  published_at?: string
+  // Relations
+  faqs?: CategoryFAQ[]
+  parent_category?: ModernCategory | null
+  child_categories?: ModernCategory[]
+}
+
+export interface CategoryFAQ {
+  id: string
+  category_id: string
+  question: string
+  answer: string
+  sort_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface ModernAuthor {
@@ -505,24 +545,505 @@ export async function getPostsCount() {
   return count || 0
 }
 
-// Get popular categories
-export async function getPopularCategories(limit: number = 8) {
-  const { data: categories, error } = await supabase
-    .from('modern_categories')
-    .select(`
-      name,
-      slug,
-      description
-    `)
-    .order('name')
-    .limit(limit)
+// COMPREHENSIVE CATEGORY MANAGEMENT FUNCTIONS
 
-  if (error) {
-    console.error('Error fetching categories:', error)
+// Get all published categories with post counts
+export async function getAllCategories(includeEmpty: boolean = false): Promise<ModernCategory[]> {
+  try {
+    let query = supabase
+      .from('modern_categories')
+      .select(`
+        *
+      `)
+      .eq('is_active', true)
+      .order('name', { ascending: true })
+
+    const { data: categories, error } = await query
+
+    if (error) {
+      console.error('Error fetching categories:', error)
+      return []
+    }
+
+    // Calculate post count for each category
+    const categoriesWithCounts = await Promise.all(
+      (categories || []).map(async (cat) => {
+        const { count } = await supabase
+          .from('modern_post_categories')
+          .select('*', { count: 'exact', head: true })
+          .eq('category_id', cat.id)
+
+        return {
+          ...cat,
+          is_published: cat.is_active,
+          is_featured: false, // No is_featured column in DB
+          visibility: 'public' as const,
+          post_count: count || 0,
+          sort_order: cat.sort_order || 0,
+          seo_title: cat.meta_title,
+          seo_description: cat.meta_description,
+          faqs: [],
+          parent_category: null,
+          child_categories: []
+        }
+      })
+    )
+
+    // Filter out categories with no posts if includeEmpty is false
+    if (!includeEmpty) {
+      return categoriesWithCounts.filter(cat => cat.post_count > 0)
+    }
+
+    return categoriesWithCounts
+  } catch (error) {
+    console.error('Exception fetching categories:', error)
     return []
   }
+}
 
-  return categories || []
+// Get category by slug with FAQs and related data
+export async function getCategoryBySlug(slug: string): Promise<ModernCategory | null> {
+  try {
+    const { data: category, error } = await supabase
+      .from('modern_categories')
+      .select('*')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null
+      }
+      console.error('Error fetching category:', error)
+      return null
+    }
+
+    // Transform to match our interface
+    return {
+      ...category,
+      is_published: category.is_active,
+      is_featured: false, // No is_featured column in DB
+      visibility: 'public' as const,
+      post_count: 0, // Will be calculated if needed
+      sort_order: category.sort_order || 0,
+      seo_title: category.meta_title,
+      seo_description: category.meta_description,
+      faqs: [], // No FAQs in current structure
+      parent_category: null,
+      child_categories: []
+    }
+  } catch (error) {
+    console.error('Exception fetching category:', error)
+    return null
+  }
+}
+
+// Get posts by category slug
+export async function getPostsByCategory(categorySlug: string, limit: number = 20, offset: number = 0) {
+  try {
+    // First get the category ID
+    const { data: category, error: categoryError } = await supabase
+      .from('modern_categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .eq('is_active', true)
+      .single()
+
+    if (categoryError || !category) {
+      console.error('Category not found or not active:', categorySlug, categoryError)
+      return { posts: [], total: 0 }
+    }
+
+    // Get post IDs for this category first
+    const { data: postCategories, error: pcError } = await supabase
+      .from('modern_post_categories')
+      .select('post_id')
+      .eq('category_id', category.id)
+
+    if (pcError) {
+      console.error('Error fetching post-category relationships:', pcError)
+      return { posts: [], total: 0 }
+    }
+
+    if (!postCategories || postCategories.length === 0) {
+      return { posts: [], total: 0 }
+    }
+
+    const postIds = postCategories.map(pc => pc.post_id)
+
+    // Now get the actual posts with all details
+    const { data: posts, error: postsError } = await supabase
+      .from('modern_posts')
+      .select(`
+        id,
+        title,
+        slug,
+        excerpt,
+        published_at,
+        reading_time,
+        created_at,
+        og_image,
+        status,
+        modern_authors(display_name, avatar_url)
+      `)
+      .in('id', postIds)
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    if (postsError) {
+      console.error('Error fetching posts by category:', postsError)
+      return { posts: [], total: 0 }
+    }
+
+    // Get total count of published posts for this category
+    const { count, error: countError } = await supabase
+      .from('modern_posts')
+      .select('*', { count: 'exact', head: true })
+      .in('id', postIds)
+      .eq('status', 'published')
+
+    if (countError) {
+      console.error('Error counting posts by category:', countError)
+    }
+
+    // Transform posts data
+    const transformedPosts = (posts || []).map(post => ({
+      ...post,
+      featured_image: post.og_image ? { file_url: post.og_image } : null,
+      author: post.modern_authors
+    }))
+
+    return { 
+      posts: transformedPosts, 
+      total: count || 0 
+    }
+  } catch (error) {
+    console.error('Exception fetching posts by category:', error)
+    return { posts: [], total: 0 }
+  }
+}
+
+// Get featured categories for homepage
+export async function getFeaturedCategories(limit: number = 6): Promise<ModernCategory[]> {
+  try {
+    const { data: categories, error } = await supabase
+      .from('modern_categories')
+      .select(`
+        id,
+        name,
+        slug,
+        description,
+        color,
+        meta_title,
+        meta_description,
+        is_active,
+        sort_order,
+        created_at,
+        updated_at
+      `)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .limit(limit)
+
+    if (error) {
+      console.error('Error fetching featured categories:', error)
+      return []
+    }
+
+    // Add post count for each category
+    const categoriesWithCounts = await Promise.all(
+      (categories || []).map(async (category) => {
+        const { count } = await supabase
+          .from('modern_post_categories')
+          .select('*', { count: 'exact', head: true })
+          .eq('category_id', category.id)
+
+        return {
+          ...category,
+          post_count: count || 0,
+          is_published: category.is_active,
+          is_featured: false, // No is_featured column in DB
+          visibility: 'public' as const,
+          seo_title: category.meta_title,
+          seo_description: category.meta_description
+        }
+      })
+    )
+
+    // Return categories with posts, sorted by post count descending
+    return categoriesWithCounts
+      .filter(cat => cat.post_count > 0)
+      .sort((a, b) => (b.post_count || 0) - (a.post_count || 0))
+  } catch (error) {
+    console.error('Exception fetching featured categories:', error)
+    return []
+  }
+}
+
+// Search categories
+export async function searchCategories(query: string, limit: number = 10): Promise<ModernCategory[]> {
+  try {
+    if (!query.trim()) {
+      return getAllCategories()
+    }
+
+    const { data: categories, error } = await supabase
+      .from('modern_categories')
+      .select(`
+        id,
+        name,
+        slug,
+        description,
+        color,
+        meta_title,
+        meta_description,
+        is_active,
+        created_at,
+        updated_at
+      `)
+      .eq('is_active', true)
+      .or(`name.ilike.%${query}%,description.ilike.%${query}%,meta_description.ilike.%${query}%`)
+      .order('name', { ascending: true })
+      .limit(limit)
+
+    if (error) {
+      console.error('Error searching categories:', error)
+      return []
+    }
+
+    // Add post count for each category
+    const categoriesWithCounts = await Promise.all(
+      (categories || []).map(async (category) => {
+        const { count } = await supabase
+          .from('modern_post_categories')
+          .select('*', { count: 'exact', head: true })
+          .eq('category_id', category.id)
+
+        return {
+          ...category,
+          post_count: count || 0,
+          is_published: category.is_active,
+          is_featured: false, // No is_featured column in DB
+          visibility: 'public' as const,
+          seo_title: category.meta_title,
+          seo_description: category.meta_description
+        }
+      })
+    )
+
+    return categoriesWithCounts
+  } catch (error) {
+    console.error('Exception searching categories:', error)
+    return []
+  }
+}
+
+// ADMIN CATEGORY MANAGEMENT FUNCTIONS (Require authentication)
+
+// Create new category
+export async function createCategory(categoryData: Partial<ModernCategory>): Promise<{ success: boolean; data?: ModernCategory; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .insert(categoryData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating category:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data }
+  } catch (error) {
+    console.error('Exception creating category:', error)
+    return { success: false, error: 'Failed to create category' }
+  }
+}
+
+// Update category
+export async function updateCategory(id: string, updates: Partial<ModernCategory>): Promise<{ success: boolean; data?: ModernCategory; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating category:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data }
+  } catch (error) {
+    console.error('Exception updating category:', error)
+    return { success: false, error: 'Failed to update category' }
+  }
+}
+
+// Delete category
+export async function deleteCategory(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting category:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Exception deleting category:', error)
+    return { success: false, error: 'Failed to delete category' }
+  }
+}
+
+// Get all categories for admin (including unpublished)
+export async function getAdminCategories(): Promise<ModernCategory[]> {
+  try {
+    const { data: categories, error } = await supabase
+      .from('modern_categories')
+      .select('*')
+      .order('name', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching admin categories:', error)
+      return []
+    }
+
+    // Transform to match our interface
+    const transformedCategories = (categories || []).map(cat => ({
+      ...cat,
+      is_published: cat.is_active,
+      visibility: 'public',
+      post_count: 0,
+      sort_order: 0,
+      faqs: [],
+      parent_category: null,
+      child_categories: []
+    }))
+
+    return transformedCategories
+  } catch (error) {
+    console.error('Exception fetching admin categories:', error)
+    return []
+  }
+}
+
+// Add/remove post from category
+export async function addPostToCategory(postId: string, categoryId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('post_categories')
+      .insert({ post_id: postId, category_id: categoryId })
+
+    if (error) {
+      console.error('Error adding post to category:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Exception adding post to category:', error)
+    return { success: false, error: 'Failed to add post to category' }
+  }
+}
+
+export async function removePostFromCategory(postId: string, categoryId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('post_categories')
+      .delete()
+      .eq('post_id', postId)
+      .eq('category_id', categoryId)
+
+    if (error) {
+      console.error('Error removing post from category:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Exception removing post from category:', error)
+    return { success: false, error: 'Failed to remove post from category' }
+  }
+}
+
+// CATEGORY FAQ MANAGEMENT
+
+// Create FAQ for category
+export async function createCategoryFAQ(faqData: Partial<CategoryFAQ>): Promise<{ success: boolean; data?: CategoryFAQ; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('category_faqs')
+      .insert(faqData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating category FAQ:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data }
+  } catch (error) {
+    console.error('Exception creating category FAQ:', error)
+    return { success: false, error: 'Failed to create FAQ' }
+  }
+}
+
+// Update FAQ
+export async function updateCategoryFAQ(id: string, updates: Partial<CategoryFAQ>): Promise<{ success: boolean; data?: CategoryFAQ; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('category_faqs')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating FAQ:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data }
+  } catch (error) {
+    console.error('Exception updating FAQ:', error)
+    return { success: false, error: 'Failed to update FAQ' }
+  }
+}
+
+// Delete FAQ
+export async function deleteCategoryFAQ(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('category_faqs')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting FAQ:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Exception deleting FAQ:', error)
+    return { success: false, error: 'Failed to delete FAQ' }
+  }
+}
+
+// Get popular categories (legacy compatibility)
+export async function getPopularCategories(limit: number = 8) {
+  return getFeaturedCategories(limit)
 }
 
 // Starter Pack interfaces and functions

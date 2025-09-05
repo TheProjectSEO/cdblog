@@ -67,6 +67,7 @@ export async function PUT(
       categories = [],
       tags = [],
       faq_items = [],
+      internal_links = [],
       template_enabled = false,
       template_type
     } = body
@@ -151,6 +152,7 @@ export async function PUT(
       seo_title: seo_title || title,
       seo_description: seo_description?.trim() || '',
       faq_items: faq_items || [],
+      internal_links: internal_links || [],
       template_enabled,
       template_type: template_type || null,
       updated_at: new Date().toISOString()

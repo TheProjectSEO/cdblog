@@ -240,10 +240,17 @@ export default function HomepageAdmin() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Homepage Management</h1>
-        <p className="text-gray-600">Customize your homepage content, logo, and settings</p>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Homepage</h1>
+          <p className="text-muted-foreground">Customize your homepage content, logo, and settings</p>
+        </div>
+        <Button onClick={saveSettings} disabled={saving}>
+          <Save className="h-4 w-4 mr-2" />
+          {saving ? 'Saving...' : 'Save Changes'}
+        </Button>
       </div>
 
       {message && (

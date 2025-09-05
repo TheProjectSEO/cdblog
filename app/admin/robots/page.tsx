@@ -169,46 +169,30 @@ export default function RobotsManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="bg-white border-b border-blue-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin" className="text-blue-600 hover:text-blue-800">
-                <Button variant="outline" size="sm">
-                  ← Back to Admin
-                </Button>
-              </Link>
-              <div className="flex items-center gap-2">
-                <Bot className="w-6 h-6 text-blue-600" />
-                <h1 className="text-2xl font-bold text-blue-900">Robots.txt Management</h1>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => window.open(previewUrl, '_blank')}
-                variant="outline"
-              >
-                <Globe className="h-4 w-4 mr-2" />
-                Preview
-              </Button>
-              <Button onClick={resetToDefault} variant="outline">
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Reset to Default
-              </Button>
-            </div>
-          </div>
-          <p className="text-blue-600 mt-2">
-            Configure how search engines crawl your website
-          </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Robots.txt</h1>
+          <p className="text-muted-foreground">Configure how search engines crawl your website</p>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => window.open(previewUrl, '_blank')}
+            variant="outline"
+          >
+            <Globe className="h-4 w-4 mr-2" />
+            Preview
+          </Button>
+          <Button onClick={resetToDefault} variant="outline">
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset to Default
+          </Button>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="space-y-6">
-          {/* Status and Validation */}
-          <div className="flex gap-4">
+      {/* Status and Validation */}
+      <div className="flex gap-4">
             {validation.isValid ? (
               <Alert className="flex-1">
                 <CheckCircle className="h-4 w-4" />
@@ -241,8 +225,8 @@ export default function RobotsManagement() {
             )}
           </div>
 
-          {/* Warnings */}
-          {validation.warnings.length > 0 && (
+      {/* Warnings */}
+      {validation.warnings.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Validation Warnings</CardTitle>
@@ -260,8 +244,8 @@ export default function RobotsManagement() {
             </Card>
           )}
 
-          {/* Editor */}
-          <Card>
+      {/* Editor */}
+      <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Robots.txt Content</span>
@@ -285,22 +269,20 @@ export default function RobotsManagement() {
             </CardContent>
           </Card>
 
-          {/* Help */}
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-6">
-              <h3 className="font-semibold text-blue-900 mb-2">💡 Robots.txt Tips</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• <strong>User-agent:</strong> Specify which bots these rules apply to (* = all bots)</li>
-                <li>• <strong>Disallow:</strong> Paths that bots should not crawl</li>
-                <li>• <strong>Allow:</strong> Explicitly allow certain paths (overrides Disallow)</li>
-                <li>• <strong>Sitemap:</strong> Tell bots where to find your sitemap</li>
-                <li>• <strong>Crawl-delay:</strong> Minimum delay between requests (in seconds)</li>
-                <li>• Test your robots.txt with <a href="https://www.google.com/webmasters/tools/robots-testing-tool" target="_blank" rel="noopener" className="text-blue-600 hover:underline font-medium">Google's Robots.txt Tester</a></li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {/* Help */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-6">
+          <h3 className="font-semibold text-blue-900 mb-2">Robots.txt Tips</h3>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• <strong>User-agent:</strong> Specify which bots these rules apply to (* = all bots)</li>
+            <li>• <strong>Disallow:</strong> Paths that bots should not crawl</li>
+            <li>• <strong>Allow:</strong> Explicitly allow certain paths (overrides Disallow)</li>
+            <li>• <strong>Sitemap:</strong> Tell bots where to find your sitemap</li>
+            <li>• <strong>Crawl-delay:</strong> Minimum delay between requests (in seconds)</li>
+            <li>• Test your robots.txt with <a href="https://www.google.com/webmasters/tools/robots-testing-tool" target="_blank" rel="noopener" className="text-blue-600 hover:underline font-medium">Google's Robots.txt Tester</a></li>
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   )
 }

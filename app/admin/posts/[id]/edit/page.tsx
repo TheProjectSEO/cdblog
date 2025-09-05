@@ -35,7 +35,12 @@ import {
   CheckCircle,
   Trash2,
   Copy,
-  HelpCircle
+  HelpCircle,
+  Link as LinkIcon,
+  ExternalLink,
+  Edit,
+  Languages,
+  Flag
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
@@ -47,6 +52,18 @@ const RichTextEditor = dynamic(() => import('@/components/rich-text-editor'), {
   ssr: false,
   loading: () => <div className="h-64 bg-muted animate-pulse rounded-md" />
 })
+
+const LINK_CATEGORIES = [
+  'Destinations',
+  'Travel Guides', 
+  'Experiences',
+  'Hotels',
+  'Activities',
+  'Food & Dining',
+  'Transportation',
+  'Tips & Advice',
+  'Other'
+]
 
 interface Author {
   id: string
@@ -69,6 +86,16 @@ interface FAQ {
   answer: string
 }
 
+interface InternalLink {
+  id: string
+  title: string
+  description: string
+  url: string
+  category: string
+  is_published: boolean
+  display_order: number
+}
+
 interface PostData {
   id: string
   title: string
@@ -83,6 +110,7 @@ interface PostData {
   categories: string[]
   tags: string[]
   faqs: FAQ[]
+  internal_links: InternalLink[]
   created_at: string
   updated_at: string
   published_at: string | null
@@ -93,6 +121,10 @@ interface PostData {
 
 export default function EditPostPage() {
   const router = useRouter()
+  
+  // Translations state
+  const [translations, setTranslations] = useState<any[]>([])
+  const [loadingTranslations, setLoadingTranslations] = useState(false)
   const params = useParams()
   const postId = params.id as string
   
@@ -123,6 +155,25 @@ export default function EditPostPage() {
     description: '',
     link: '',
     position: 'mid-content'
+  })
+
+  // Internal Links state
+  const [newInternalLink, setNewInternalLink] = useState({
+    title: '',
+    description: '',
+    url: '',
+    category: 'Travel Guides',
+    is_published: true,
+    display_order: 1
+  })
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null)
+  const [editLinkForm, setEditLinkForm] = useState({
+    title: '',
+    description: '',
+    url: '',
+    category: '',
+    is_published: true,
+    display_order: 1
   })
 
   const fetchSectionContent = useCallback(async (postId: string) => {
@@ -269,6 +320,7 @@ export default function EditPostPage() {
         categories: post.categories || [],
         tags: post.tags || [],
         faqs: post.faq_items || [],
+        internal_links: post.internal_links || [],
         sections: post.sections?.sort((a, b) => a.position - b.position) || []
       }
 
@@ -323,11 +375,33 @@ export default function EditPostPage() {
     }
   }
 
+  const fetchTranslations = async () => {
+    if (!postId) return
+
+    setLoadingTranslations(true)
+    try {
+      const { data, error } = await supabase
+        .from('post_translations')
+        .select('*')
+        .eq('original_post_id', postId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      
+      setTranslations(data || [])
+    } catch (error) {
+      console.error('Error fetching translations:', error)
+      setTranslations([])
+    } finally {
+      setLoadingTranslations(false)
+    }
+  }
 
   useEffect(() => {
     if (postId) {
       fetchPost()
       fetchAuthors()
+      fetchTranslations()
     }
   }, [postId, fetchPost])
 
@@ -413,6 +487,7 @@ export default function EditPostPage() {
       categories: postData.categories,
       tags: postData.tags,
       faq_items: postData.faqs,
+      internal_links: postData.internal_links,
       template_enabled: postData.template_enabled,
       template_type: postData.template_type || null,
     }
@@ -665,6 +740,92 @@ export default function EditPostPage() {
     }
   }
 
+  // Internal Links Management Functions
+  const handleAddInternalLink = () => {
+    if (!newInternalLink.title.trim() || !newInternalLink.description.trim() || !newInternalLink.url.trim() || !postData) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    const newLink: InternalLink = {
+      id: `link-${Date.now()}`,
+      title: newInternalLink.title.trim(),
+      description: newInternalLink.description.trim(),
+      url: newInternalLink.url.trim(),
+      category: newInternalLink.category,
+      is_published: newInternalLink.is_published,
+      display_order: newInternalLink.display_order
+    }
+
+    setPostData(prev => prev ? ({
+      ...prev,
+      internal_links: [...prev.internal_links, newLink].sort((a, b) => b.display_order - a.display_order)
+    }) : null)
+
+    // Reset form
+    setNewInternalLink({
+      title: '',
+      description: '',
+      url: '',
+      category: 'Travel Guides',
+      is_published: true,
+      display_order: 1
+    })
+
+    toast.success('Internal link added successfully')
+  }
+
+  const handleEditInternalLink = (link: InternalLink) => {
+    setEditingLinkId(link.id)
+    setEditLinkForm({
+      title: link.title,
+      description: link.description,
+      url: link.url,
+      category: link.category,
+      is_published: link.is_published,
+      display_order: link.display_order
+    })
+  }
+
+  const handleUpdateInternalLink = () => {
+    if (!editingLinkId || !postData) return
+
+    const updatedLinks = postData.internal_links.map(link => 
+      link.id === editingLinkId 
+        ? {
+            ...link,
+            title: editLinkForm.title.trim(),
+            description: editLinkForm.description.trim(),
+            url: editLinkForm.url.trim(),
+            category: editLinkForm.category,
+            is_published: editLinkForm.is_published,
+            display_order: editLinkForm.display_order
+          }
+        : link
+    )
+
+    setPostData(prev => prev ? ({
+      ...prev,
+      internal_links: updatedLinks.sort((a, b) => b.display_order - a.display_order)
+    }) : null)
+
+    setEditingLinkId(null)
+    toast.success('Internal link updated successfully')
+  }
+
+  const handleDeleteInternalLink = (linkId: string) => {
+    if (!window.confirm('Are you sure you want to delete this internal link?')) {
+      return
+    }
+
+    setPostData(prev => prev ? ({
+      ...prev,
+      internal_links: prev.internal_links.filter(link => link.id !== linkId)
+    }) : null)
+
+    toast.success('Internal link deleted successfully')
+  }
+
   if (loading) {
     return (
       <AuthWrapper>
@@ -795,7 +956,9 @@ export default function EditPostPage() {
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="seo">SEO & Meta</TabsTrigger>
             <TabsTrigger value="sections">Sections</TabsTrigger>
+            <TabsTrigger value="internal-links">Internal Links</TabsTrigger>
             <TabsTrigger value="faqs">FAQs</TabsTrigger>
+            <TabsTrigger value="translations">Translations</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -1413,6 +1576,272 @@ export default function EditPostPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="internal-links">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <LinkIcon className="h-5 w-5" />
+                  Internal Links for this Post
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Manage internal links specific to this post. These links will be available for inclusion in the content sections.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Add New Internal Link Form */}
+                <div className="border p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
+                  <h3 className="font-semibold mb-3 text-blue-900">Add New Internal Link</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="link-title">Link Title *</Label>
+                      <Input
+                        id="link-title"
+                        value={newInternalLink.title}
+                        onChange={(e) => setNewInternalLink(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="e.g., Ultimate Guide to Paris"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="link-url">URL *</Label>
+                      <Input
+                        id="link-url"
+                        value={newInternalLink.url}
+                        onChange={(e) => setNewInternalLink(prev => ({ ...prev, url: e.target.value }))}
+                        placeholder="e.g., /blog/paris-travel-guide or https://external.com"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="link-description">Description *</Label>
+                      <Textarea
+                        id="link-description"
+                        value={newInternalLink.description}
+                        onChange={(e) => setNewInternalLink(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Brief description of the linked content..."
+                        rows={3}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="link-category">Category</Label>
+                      <Select 
+                        value={newInternalLink.category}
+                        onValueChange={(value) => setNewInternalLink(prev => ({ ...prev, category: value }))}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LINK_CATEGORIES.map(category => (
+                            <SelectItem key={category} value={category}>{category}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="link-display-order">Display Order (1-10)</Label>
+                      <Input
+                        id="link-display-order"
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={newInternalLink.display_order}
+                        onChange={(e) => setNewInternalLink(prev => ({ ...prev, display_order: parseInt(e.target.value) || 1 }))}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Switch 
+                      checked={newInternalLink.is_published} 
+                      onCheckedChange={(checked) => setNewInternalLink(prev => ({ ...prev, is_published: checked }))}
+                    />
+                    <Label>Published Link</Label>
+                  </div>
+
+                  <div className="flex justify-end mt-4">
+                    <Button 
+                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={handleAddInternalLink}
+                      disabled={!newInternalLink.title.trim() || !newInternalLink.description.trim() || !newInternalLink.url.trim()}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Internal Link
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Current Internal Links */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Current Internal Links ({postData.internal_links.length})</h3>
+                  
+                  {postData.internal_links.length > 0 ? (
+                    <div className="space-y-4">
+                      {postData.internal_links.map((link) => (
+                        <Card key={link.id} className="border-l-4 border-l-blue-500">
+                          <CardContent className="p-4">
+                            {editingLinkId === link.id ? (
+                              // Edit Form
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor={`edit-title-${link.id}`}>Title *</Label>
+                                    <Input
+                                      id={`edit-title-${link.id}`}
+                                      value={editLinkForm.title}
+                                      onChange={(e) => setEditLinkForm(prev => ({ ...prev, title: e.target.value }))}
+                                      placeholder="Link title"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor={`edit-url-${link.id}`}>URL *</Label>
+                                    <Input
+                                      id={`edit-url-${link.id}`}
+                                      value={editLinkForm.url}
+                                      onChange={(e) => setEditLinkForm(prev => ({ ...prev, url: e.target.value }))}
+                                      placeholder="URL"
+                                    />
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <Label htmlFor={`edit-description-${link.id}`}>Description *</Label>
+                                    <Textarea
+                                      id={`edit-description-${link.id}`}
+                                      value={editLinkForm.description}
+                                      onChange={(e) => setEditLinkForm(prev => ({ ...prev, description: e.target.value }))}
+                                      placeholder="Link description"
+                                      rows={3}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor={`edit-category-${link.id}`}>Category</Label>
+                                    <Select 
+                                      value={editLinkForm.category}
+                                      onValueChange={(value) => setEditLinkForm(prev => ({ ...prev, category: value }))}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select category" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {LINK_CATEGORIES.map(category => (
+                                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <Label htmlFor={`edit-order-${link.id}`}>Display Order</Label>
+                                    <Input
+                                      id={`edit-order-${link.id}`}
+                                      type="number"
+                                      min="1"
+                                      max="10"
+                                      value={editLinkForm.display_order}
+                                      onChange={(e) => setEditLinkForm(prev => ({ ...prev, display_order: parseInt(e.target.value) || 1 }))}
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center space-x-2">
+                                  <Switch 
+                                    checked={editLinkForm.is_published} 
+                                    onCheckedChange={(checked) => setEditLinkForm(prev => ({ ...prev, is_published: checked }))}
+                                  />
+                                  <Label>Published Link</Label>
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <Button onClick={handleUpdateInternalLink}>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Save Changes
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => setEditingLinkId(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              // Display Mode
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <h4 className="font-semibold text-gray-900">{link.title}</h4>
+                                    <Badge variant={link.is_published ? "default" : "secondary"}>
+                                      {link.is_published ? 'Published' : 'Draft'}
+                                    </Badge>
+                                    <Badge variant="outline">
+                                      Order: {link.display_order}
+                                    </Badge>
+                                    <Badge variant="outline">
+                                      {link.category}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-gray-600 mb-2 text-sm">{link.description}</p>
+                                  <div className="flex items-center gap-2">
+                                    <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
+                                      {link.url}
+                                    </code>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => window.open(link.url.startsWith('http') ? link.url : `${window.location.origin}${link.url}`, '_blank')}
+                                      className="p-0 h-auto"
+                                    >
+                                      <ExternalLink className="h-4 w-4 text-blue-600" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => handleEditInternalLink(link)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => handleDeleteInternalLink(link.id)}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                      <LinkIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No internal links added yet</p>
+                      <p className="text-sm">Add internal links to help readers discover related content</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Usage Instructions */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-900 mb-2">How to Use Internal Links</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Internal links help readers discover related content on your site</li>
+                    <li>• Use descriptive titles that match the target page content</li>
+                    <li>• Higher display order (1-10) means higher priority in display</li>
+                    <li>• These links are specific to this post and saved with the post data</li>
+                    <li>• Links can be internal (/blog/...) or external (https://...)</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="faqs">
             <Card>
               <CardHeader>
@@ -1504,6 +1933,136 @@ export default function EditPostPage() {
                   <Plus className="h-4 w-4 mr-2" />
                   Add New FAQ
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="translations">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Languages className="h-5 w-5" />
+                  Translations
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Manage translations of this post in different languages. Each translation maintains its own URL structure.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {loadingTranslations ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : translations.length > 0 ? (
+                  <div className="space-y-4">
+                    {translations.map((translation) => {
+                      const languageMap: { [key: string]: { name: string, flag: string } } = {
+                        'fr': { name: 'French', flag: '🇫🇷' },
+                        'it': { name: 'Italian', flag: '🇮🇹' },
+                        'de': { name: 'German', flag: '🇩🇪' },
+                        'es': { name: 'Spanish', flag: '🇪🇸' }
+                      }
+                      
+                      const language = languageMap[translation.language_code] || { name: translation.language_code, flag: '🏳️' }
+                      
+                      return (
+                        <div key={translation.id} className="border rounded-lg p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{language.flag}</span>
+                              <div>
+                                <h4 className="font-semibold">{language.name}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Status: {translation.translation_status}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  // Open translation editor - we'll implement this next
+                                  window.open(`/admin/posts/translations/${translation.id}/edit`, '_blank')
+                                }}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  // View translated post with correct URL structure
+                                  const slug = translation.translated_slug
+                                  const slugParts = slug.split('/')
+                                  let viewUrl = ''
+                                  
+                                  if (slugParts.length >= 2) {
+                                    // Has country: thailand/post-name -> /blog/thailand/fr/post-name
+                                    const country = slugParts[0]
+                                    const postSlug = slugParts.slice(1).join('/')
+                                    viewUrl = `/blog/${country}/${translation.language_code}/${postSlug}`
+                                  } else {
+                                    // No country: post-name -> /blog/post-name/fr
+                                    viewUrl = `/blog/${slug}/${translation.language_code}`
+                                  }
+                                  
+                                  window.open(viewUrl, '_blank')
+                                }}
+                              >
+                                <ExternalLink className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2 text-sm">
+                            <div>
+                              <strong>Title:</strong> {translation.translated_title}
+                            </div>
+                            <div>
+                              <strong>Excerpt:</strong> {translation.translated_excerpt?.substring(0, 100)}...
+                            </div>
+                            <div>
+                              <strong>URL:</strong> 
+                              <code className="ml-1 bg-gray-100 px-1 rounded">
+                                /blog/{translation.translated_slug.includes('/') ? translation.translated_slug.replace(/\/([^\/]+)$/, `/${translation.language_code}/$1`) : `${translation.translated_slug}/${translation.language_code}`}
+                              </code>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Created: {format(new Date(translation.created_at), 'MMM dd, yyyy')} | 
+                              Updated: {format(new Date(translation.updated_at), 'MMM dd, yyyy')}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Languages className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-medium mb-2">No Translations Yet</h3>
+                    <p className="text-sm mb-4">
+                      This post hasn't been translated to other languages yet.
+                    </p>
+                    <p className="text-xs">
+                      To translate this post, go to the Posts list and click the "Translate" button next to this post.
+                    </p>
+                  </div>
+                )}
+
+                {/* Translation Info */}
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-semibold text-blue-900 mb-2">Translation Information</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Translations are created using AI and may need manual review</li>
+                    <li>• Each translation gets its own URL: /blog/existing-country/language-code/slug or /blog/slug/language-code</li>
+                    <li>• Bi-directional hreflang tags are automatically added for SEO</li>
+                    <li>• You can edit translated content independently</li>
+                    <li>• Supported languages: French (fr), Italian (it), German (de), Spanish (es)</li>
+                  </ul>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

@@ -8,9 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { BlogArticleTemplate } from "@/components/blog-article-template"
-import { convertBlogPostToTemplate } from "@/lib/blog-template-utils"
-import { convertPostToTemplate } from "@/lib/blog-template-generator"
-import { convertLegacyPostToTemplate } from "@/lib/legacy-blog-template-generator"
+import { convertAnyPostToArticle } from "@/lib/universal-blog-converter"
 import { cookies } from 'next/headers'
 
 interface BlogPostPageProps {
@@ -30,22 +28,42 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
   
     // Parse the slug array to determine country, language, and post slug
     const slugArray = resolvedParams.slug
+    console.log('🔍 BlogPostPage accessed with slug array:', slugArray)
+    
     let country: string | null = null
     let language: string = 'en' // Default language
     let postSlug: string | null = null
     let fullSlug: string | null = null
 
+    const validLanguageCodes = ['fr', 'it', 'de', 'es']
+
     if (slugArray.length === 2) {
-      // Format: /blog/country/post-name
-      country = slugArray[0]
-      postSlug = slugArray[1]
-      fullSlug = `${country}/${postSlug}`
+      // Check if second part is a language code: /blog/post-name/fr
+      if (validLanguageCodes.includes(slugArray[1])) {
+        // Format: /blog/post-name/lang
+        postSlug = slugArray[0]
+        language = slugArray[1]
+        fullSlug = postSlug
+      } else {
+        // Format: /blog/country/post-name  
+        country = slugArray[0]
+        postSlug = slugArray[1]
+        fullSlug = `${country}/${postSlug}`
+      }
     } else if (slugArray.length === 3) {
-      // Format: /blog/country/lang/post-name
-      country = slugArray[0]
-      language = slugArray[1]
-      postSlug = slugArray[2]
-      fullSlug = `${country}/${postSlug}` // Database still uses country/post-name format
+      // Check if middle part is a language code: /blog/thailand/fr/post-name
+      if (validLanguageCodes.includes(slugArray[1])) {
+        // Format: /blog/country/lang/post-name
+        country = slugArray[0]
+        language = slugArray[1]
+        postSlug = slugArray[2]
+        fullSlug = `${country}/${postSlug}` // Database stores as country/post-name
+      } else {
+        // Format: /blog/country/category/post-name (fallback)
+        country = slugArray[0]
+        postSlug = `${slugArray[1]}/${slugArray[2]}`
+        fullSlug = `${country}/${postSlug}`
+      }
     } else if (slugArray.length === 1) {
       // Fallback for old format: /blog/post-name
       postSlug = slugArray[0]
@@ -87,20 +105,58 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
     }
   }
   
-  // First try to get modern post with full slug (new format), then fallback to postSlug (original format)
-  let post = isPreview 
-    ? await getModernPostBySlugWithPreview(fullSlug, true)
-    : await getModernPostBySlug(fullSlug)
-  
-  console.log('First query result:', { found: !!post, searchedSlug: fullSlug })
-  
-  // If not found with full slug, try with just the post slug (original format)
-  if (!post && postSlug) {
+  let post = null
+  let translationPost = null
+
+  // If this is a translation URL (language is not 'en'), first try to find the translation directly
+  if (language !== 'en' && postSlug) {
+    try {
+      // Construct the translated_slug that should be stored in database
+      const lookupSlug = country ? `${country}/${postSlug}` : postSlug
+      
+      const { data: translationData } = await supabase
+        .from('post_translations')
+        .select(`
+          *,
+          original_post:modern_posts!inner(*)
+        `)
+        .eq('language_code', language)
+        .eq('translated_slug', lookupSlug)
+        .eq('translation_status', 'completed')
+        .single()
+
+      if (translationData) {
+        console.log('Found direct translation:', { 
+          translationId: translationData.id, 
+          language: translationData.language_code,
+          slug: translationData.translated_slug,
+          lookupSlug
+        })
+        translationPost = translationData
+        post = translationData.original_post
+      }
+    } catch (error) {
+      console.log('No direct translation found, trying original post lookup')
+    }
+  }
+
+  // If no translation found, try original post lookup
+  if (!post) {
+    // First try to get modern post with full slug (new format), then fallback to postSlug (original format)
     post = isPreview 
-      ? await getModernPostBySlugWithPreview(postSlug, true)
-      : await getModernPostBySlug(postSlug)
+      ? await getModernPostBySlugWithPreview(fullSlug, true)
+      : await getModernPostBySlug(fullSlug)
     
-    console.log('Fallback query result:', { found: !!post, searchedSlug: postSlug })
+    console.log('First query result:', { found: !!post, searchedSlug: fullSlug })
+    
+    // If not found with full slug, try with just the post slug (original format)
+    if (!post && postSlug) {
+      post = isPreview 
+        ? await getModernPostBySlugWithPreview(postSlug, true)
+        : await getModernPostBySlug(postSlug)
+      
+      console.log('Fallback query result:', { found: !!post, searchedSlug: postSlug })
+    }
   }
   
   let isLegacyPost = false
@@ -128,7 +184,7 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
   
   try {
     // Get available translations for this post (only for modern posts)
-    if (!isLegacyPost && post) {
+    if (!isLegacyPost && post && post.id) {
       const { data: translationData } = await supabase
         .from('post_translations')
         .select('language_code, translated_slug, translation_status')
@@ -137,8 +193,37 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
       
       translations = translationData
       
-      // Handle translation content for non-English languages
-      if (language !== 'en' && translations) {
+      // If we have a direct translation (from URL), use it
+      if (translationPost && post) {
+        try {
+          console.log('Processing translation data:', {
+            translationId: translationPost.id,
+            hasTitle: !!translationPost.translated_title,
+            hasExcerpt: !!translationPost.translated_excerpt,
+            hasContent: !!translationPost.translated_content,
+            contentType: typeof translationPost.translated_content,
+            contentLength: translationPost.translated_content?.length || 0
+          })
+
+          translatedPost = {
+            ...post,
+            title: translationPost.translated_title || post.title,
+            excerpt: translationPost.translated_excerpt || post.excerpt,
+            content: translationPost.translated_content || post.content,
+            // Apply SEO data from translation if available
+            ...(translationPost.seo_data || {})
+          }
+          
+          console.log('Translation processing successful')
+        } catch (error) {
+          console.error('Error processing translation data:', error)
+          console.error('Translation post data:', translationPost)
+          // Fallback to original post if translation processing fails
+          translatedPost = post
+        }
+      } 
+      // Otherwise, handle translation content for non-English languages (legacy method)
+      else if (language !== 'en' && translations && translations.length > 0) {
         const translation = translations.find(t => t.language_code === language)
         if (translation) {
           // Get the translated content
@@ -149,15 +234,20 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
             .eq('language_code', language)
             .single()
 
-          if (translationContent) {
-            // Merge translation data with original post
-            translatedPost = {
-              ...post,
-              title: translationContent.translated_title || post.title,
-              excerpt: translationContent.translated_excerpt || post.excerpt,
-              content: translationContent.translated_content || post.content,
-              // Apply SEO data from translation if available
-              ...(translationContent.seo_data || {})
+          if (translationContent && post) {
+            try {
+              // Merge translation data with original post
+              translatedPost = {
+                ...post,
+                title: translationContent.translated_title || post.title,
+                excerpt: translationContent.translated_excerpt || post.excerpt,
+                content: translationContent.translated_content || post.content,
+                // Apply SEO data from translation if available
+                ...(translationContent.seo_data || {})
+              }
+            } catch (error) {
+              console.error('Error merging translation content:', error)
+              translatedPost = post // Fallback to original post
             }
           }
         }
@@ -206,81 +296,66 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
     }
   }
 
-  // For legacy posts, we'll always use the template system with the real content
+  // For legacy posts, use the universal converter
   if (isLegacyPost && legacyPost) {
-    const legacyTemplateData = convertLegacyPostToTemplate(legacyPost)
-    const convertedLegacyPost = convertBlogPostToTemplate(legacyTemplateData)
-
-    // JSON-LD structured data for SEO for legacy post
-    const legacyJsonLd = {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: legacyPost.title,
-      description: legacyPost.excerpt || '',
-      image: legacyPost.featured_image_url || '',
-      datePublished: legacyPost.published_at,
-      dateModified: legacyPost.modified_at || legacyPost.updated_at,
-      author: {
-        '@type': 'Person',
-        name: legacyTemplateData.author.display_name,
-      },
-      publisher: {
-        '@type': 'Organization',
-        name: 'CuddlyNest',
-        logo: {
-          '@type': 'ImageObject',
-          url: 'https://cuddlynest.com/logo.png',
+    try {
+      const articleData = convertAnyPostToArticle(legacyPost)
+      
+      const legacyJsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: legacyPost.title,
+        description: legacyPost.excerpt || '',
+        image: legacyPost.featured_image_url || '',
+        datePublished: legacyPost.published_at,
+        dateModified: legacyPost.modified_at || legacyPost.updated_at,
+        author: {
+          '@type': 'Person',
+          name: articleData.author.display_name,
         },
-      },
-      mainEntityOfPage: {
-        '@type': 'WebPage',
-        '@id': `https://cuddlynest.com/blog/${fullSlug}`,
-      },
-      articleSection: 'Travel Guide',
-      keywords: `travel, ${legacyPost.title}, travel guide`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'CuddlyNest',
+          logo: {
+            '@type': 'ImageObject',
+            url: 'https://cuddlynest.com/logo.png',
+          },
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `https://cuddlynest.com/blog/${fullSlug}`,
+        },
+        articleSection: 'Travel Guide',
+        keywords: `travel, ${legacyPost.title}, travel guide`,
+      }
+
+      return (
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(legacyJsonLd) }}
+          />
+          <BlogArticleTemplate 
+            article={articleData} 
+            availableTranslations={[]} 
+          />
+        </>
+      )
+    } catch (error) {
+      console.error('Error converting legacy post:', error)
+      notFound()
     }
-
-    return (
-      <>
-        {/* JSON-LD Structured Data for Legacy Post */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(legacyJsonLd) }}
-        />
-
-        <BlogArticleTemplate 
-          article={convertedLegacyPost} 
-          availableTranslations={[]} // No translations for legacy posts
-        />
-      </>
-    )
   }
 
-  const hasSections = translatedPost?.sections && translatedPost.sections.length > 0
-  
-  console.log('BlogPostPage debug:', {
-    postId: translatedPost?.id,
-    postTitle: translatedPost?.title,
-    sectionsCount: translatedPost?.sections?.length || 0,
-    hasSections,
-    originalWpId: (translatedPost as any)?.original_wp_id,
-    isLegacyPost,
-    language,
-    country
-  })
-
-  // Check if post should use the new template based on database settings
-  const shouldUseNewTemplate = translatedPost?.template_enabled === true || translatedPost?.template_type === 'article_template'
-
   // JSON-LD structured data for SEO
-  const jsonLd = {
+  const jsonLd = translatedPost ? {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: translatedPost.title,
+    headline: translatedPost.title || 'Untitled Post',
     description: translatedPost.excerpt || '',
     image: translatedPost.og_image?.file_url || '',
-    datePublished: translatedPost.published_at,
-    dateModified: translatedPost.updated_at || translatedPost.published_at,
+    datePublished: translatedPost.published_at || translatedPost.created_at,
+    dateModified: translatedPost.updated_at || translatedPost.published_at || translatedPost.created_at,
     author: {
       '@type': 'Person',
       name: translatedPost.author?.display_name || 'CuddlyNest Travel Team',
@@ -298,29 +373,45 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
       '@id': `https://cuddlynest.com/blog/${slugArray.join('/')}`,
     },
     articleSection: 'Travel Guide',
-    keywords: translatedPost.meta_keywords || `travel, ${translatedPost.title}, travel guide`,
+    keywords: translatedPost.meta_keywords || `travel, ${translatedPost.title || 'travel guide'}`,
+  } : {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: 'Post Not Found',
+    description: 'The requested post could not be found.',
   }
 
-  // Use new template for posts marked for template usage
-  if (shouldUseNewTemplate) {
-    // Use automated template generation for all posts
-    const templateData = convertPostToTemplate(translatedPost)
-    const convertedPost = convertBlogPostToTemplate(templateData)
+  // Use universal converter for all modern posts
+  if (translatedPost) {
+    try {
+      const articleData = convertAnyPostToArticle(translatedPost)
+      
+      return (
+        <>
+          {/* JSON-LD Structured Data */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+          <BlogArticleTemplate 
+            article={articleData} 
+            availableTranslations={translations || []} 
+          />
+        </>
+      )
+    } catch (error) {
+      console.error('Error in universal converter:', error)
+      // Fall through to section-based rendering
+    }
+  }
 
-    return (
-      <>
-        {/* JSON-LD Structured Data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+  // Check if post has sections for fallback rendering
+  const hasSections = translatedPost?.sections && translatedPost.sections.length > 0
 
-        <BlogArticleTemplate 
-          article={convertedPost} 
-          availableTranslations={translations || []} 
-        />
-      </>
-    )
+  // Ensure we have a valid post to render
+  if (!translatedPost) {
+    console.error('No translated post available for rendering')
+    notFound()
   }
 
   // Build the correct current URL for language switcher
@@ -538,21 +629,55 @@ export async function generateMetadata({ params }: BlogPostPageProps) {
     .eq('original_post_id', post.id)
     .eq('translation_status', 'completed')
 
-  // Build comprehensive hreflang object with new URL structure
-  const currentUrl = `/blog/${slugArray.join('/')}`
-  const languages: Record<string, string> = {
-    'en': currentUrl, // Current page URL
-    'x-default': currentUrl // Default fallback
-  }
+  // Build bi-directional comprehensive hreflang object with English as x-default
+  const languages: Record<string, string> = {}
   
-  // Add all completed translations using new URL structure
+  // Always set English as x-default (the canonical original version)
+  const originalUrl = country ? `/blog/${country}/${postSlug}` : `/blog/${postSlug}`
+  languages['x-default'] = originalUrl
+  languages['en'] = originalUrl
+  languages['en-US'] = originalUrl // Also target US specifically
+  
+  // Add all completed translations with proper bi-directional structure
   if (allTranslations && allTranslations.length > 0) {
     allTranslations.forEach(translation => {
-      if (country) {
-        languages[translation.language_code] = `/blog/${country}/${translation.language_code}/${postSlug}`
+      // Get the actual translated slug from the translation
+      const translatedSlugParts = translation.translated_slug?.split('/') || []
+      
+      if (translatedSlugParts.length >= 2) {
+        // Has country: thailand/translated-post -> /blog/thailand/fr/translated-post
+        const translatedCountry = translatedSlugParts[0]
+        const translatedPostSlug = translatedSlugParts.slice(1).join('/')
+        const translationUrl = `/blog/${translatedCountry}/${translation.language_code}/${translatedPostSlug}`
+        
+        languages[translation.language_code] = translationUrl
+        
+        // Also add country-specific locales for better targeting
+        if (translation.language_code === 'fr') {
+          languages['fr-FR'] = translationUrl
+        } else if (translation.language_code === 'it') {
+          languages['it-IT'] = translationUrl
+        } else if (translation.language_code === 'de') {
+          languages['de-DE'] = translationUrl
+        } else if (translation.language_code === 'es') {
+          languages['es-ES'] = translationUrl
+        }
       } else {
-        // For posts without country, append language code
-        languages[translation.language_code] = `/blog/${post.slug}/${translation.language_code}`
+        // No country: translated-post -> /blog/translated-post/fr
+        const translationUrl = `/blog/${translation.translated_slug}/${translation.language_code}`
+        
+        languages[translation.language_code] = translationUrl
+        
+        // Also add country-specific locales
+        if (translation.language_code === 'fr') {
+          languages['fr-FR'] = translationUrl
+        } else if (translation.language_code === 'it') {
+          languages['it-IT'] = translationUrl
+        } else if (translation.language_code === 'de') {
+          languages['de-DE'] = translationUrl
+        } else if (translation.language_code === 'es') {
+          languages['es-ES'] = translationUrl
+        }
       }
     })
   }

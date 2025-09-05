@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Toggle } from '@/components/ui/toggle'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { ImageUploadDialog } from './image-upload-dialog'
 import { 
   Bold, 
   Italic, 
@@ -62,6 +63,7 @@ export default function RichTextEditor({ content = '', onChange, placeholder = '
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [selectedFormat, setSelectedFormat] = useState('paragraph')
   const [isInitialized, setIsInitialized] = useState(false)
+  const [showImageDialog, setShowImageDialog] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -145,10 +147,13 @@ export default function RichTextEditor({ content = '', onChange, placeholder = '
   }
 
   const insertImage = () => {
-    const url = prompt('Enter image URL:')
-    if (url) {
-      execCommand('insertImage', url)
-    }
+    setShowImageDialog(true)
+  }
+
+  const handleImageInsert = (url: string, altText?: string) => {
+    // Create proper img tag with alt attribute
+    const imgTag = `<img src="${url}" alt="${altText || 'Inserted image'}" style="max-width: 100%; height: auto;" />`
+    execCommand('insertHTML', imgTag)
   }
 
   return (
@@ -416,6 +421,13 @@ export default function RichTextEditor({ content = '', onChange, placeholder = '
           font-family: 'Courier New', monospace;
         }
       `}</style>
+
+      {/* Image Upload Dialog */}
+      <ImageUploadDialog
+        open={showImageDialog}
+        onClose={() => setShowImageDialog(false)}
+        onImageSelect={handleImageInsert}
+      />
     </div>
   )
 }

@@ -5,10 +5,10 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Calendar, Clock, Share2, User } from "lucide-react"
+import { Calendar, Clock, Share2, User, MapPin, Star, Wifi, Car, Coffee, Utensils } from "lucide-react"
 import { useEffect, useState } from 'react'
 
-// Types
+// Enhanced Types for Universal Template
 interface Author {
   display_name: string
   bio?: string
@@ -33,6 +33,47 @@ interface TOCItem {
   level: number // 1 for H1, 2 for H2, etc.
 }
 
+interface Hotel {
+  id: string
+  name: string
+  image: string
+  rating: number
+  price: string
+  location: string
+  amenities: string[]
+}
+
+interface ItineraryDay {
+  day: number
+  title: string
+  activities: Array<{
+    time: string
+    activity: string
+    location: string
+    description?: string
+  }>
+}
+
+interface BudgetInfo {
+  total_range: string
+  breakdown: Array<{
+    category: string
+    amount: string
+    description: string
+  }>
+}
+
+interface TravelTips {
+  category: string
+  tips: string[]
+}
+
+interface EmbeddedComponent {
+  type: string
+  position: number
+  data: any
+}
+
 interface BlogArticleData {
   id: string
   title: string
@@ -51,16 +92,144 @@ interface BlogArticleData {
   featured_image?: {
     file_url: string
   }
-  content: string // HTML or markdown content
+  content: string // Rich HTML content with embedded components
   images?: ArticleImage[]
   faqs?: FAQ[]
   status: string
   categories?: string[]
+  // Enhanced fields for unified template
+  embedded_components?: EmbeddedComponent[]
+  hotels?: Hotel[]
+  itinerary?: ItineraryDay[]
+  budget_info?: BudgetInfo
+  travel_tips?: TravelTips[]
+  starter_pack_data?: any
 }
 
 interface BlogArticleTemplateProps {
   article: BlogArticleData
   availableTranslations?: any[]
+}
+
+// Hotel Card Component
+function HotelCard({ hotel }: { hotel: Hotel }) {
+  return (
+    <div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+      <img
+        src={hotel.image}
+        alt={hotel.name}
+        className="w-full h-48 object-cover"
+      />
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="font-semibold text-lg">{hotel.name}</h3>
+          <div className="flex items-center gap-1">
+            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+            <span className="text-sm font-medium">{hotel.rating}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-gray-600 mb-2">
+          <MapPin className="w-4 h-4" />
+          <span className="text-sm">{hotel.location}</span>
+        </div>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-lg font-bold text-green-600">{hotel.price}</span>
+        </div>
+        {hotel.amenities && hotel.amenities.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {hotel.amenities.slice(0, 3).map((amenity, index) => (
+              <span key={index} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                {amenity}
+              </span>
+            ))}
+            {hotel.amenities.length > 3 && (
+              <span className="text-xs text-gray-500">+{hotel.amenities.length - 3} more</span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Itinerary Component
+function ItinerarySection({ itinerary }: { itinerary: ItineraryDay[] }) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-[#242526] mb-6">Itinerary</h2>
+      {itinerary.map((day) => (
+        <div key={day.day} className="border-l-4 border-blue-500 pl-6 pb-6">
+          <h3 className="text-xl font-semibold text-[#242526] mb-3">
+            Day {day.day}: {day.title}
+          </h3>
+          <div className="space-y-3">
+            {day.activities.map((activity, index) => (
+              <div key={index} className="flex gap-4 p-3 bg-gray-50 rounded-lg">
+                <div className="font-medium text-blue-600 min-w-[80px]">
+                  {activity.time}
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-[#242526]">{activity.activity}</h4>
+                  <p className="text-sm text-gray-600 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {activity.location}
+                  </p>
+                  {activity.description && (
+                    <p className="text-sm text-gray-700 mt-1">{activity.description}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Budget Info Component
+function BudgetSection({ budgetInfo }: { budgetInfo: BudgetInfo }) {
+  return (
+    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+      <h2 className="text-2xl font-bold text-[#242526] mb-4">Budget Guide</h2>
+      <div className="text-3xl font-bold text-green-600 mb-4">
+        {budgetInfo.total_range}
+      </div>
+      <div className="space-y-3">
+        {budgetInfo.breakdown.map((item, index) => (
+          <div key={index} className="flex justify-between items-center py-2 border-b border-green-200 last:border-b-0">
+            <div>
+              <div className="font-medium text-[#242526]">{item.category}</div>
+              <div className="text-sm text-gray-600">{item.description}</div>
+            </div>
+            <div className="font-semibold text-green-600">{item.amount}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Travel Tips Component
+function TravelTipsSection({ tips }: { tips: TravelTips[] }) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-[#242526] mb-6">Travel Tips</h2>
+      {tips.map((tipCategory, categoryIndex) => (
+        <div key={categoryIndex} className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h3 className="text-xl font-semibold text-[#242526] mb-4">{tipCategory.category}</h3>
+          <ul className="space-y-2">
+            {tipCategory.tips.map((tip, tipIndex) => (
+              <li key={tipIndex} className="flex items-start gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-700">{tip}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 // Table of Contents Component
@@ -373,90 +542,7 @@ export function BlogArticleTemplate({ article, availableTranslations = [] }: Blo
             </Link>
           </div>
 
-          {/* Search Group */}
-          <div 
-            style={{
-              position: 'absolute',
-              left: '915px',
-              top: '21px',
-              width: '314px',
-              height: '38px'
-            }}
-          >
-            {/* Search Field - Display only (non-functional) */}
-            <div
-              style={{
-                position: 'absolute',
-                width: '314px',
-                height: '38px',
-                backgroundColor: '#F7F7F7',
-                border: '1px solid #E9E9EB',
-                borderRadius: '19px'
-              }}
-            >
-              <input
-                type="text"
-                placeholder="Search on the blog"
-                readOnly
-                disabled
-                className="w-full h-full bg-transparent outline-none cursor-default"
-                style={{
-                  paddingLeft: '22px',
-                  paddingRight: '50px',
-                  fontFamily: 'Poppins, sans-serif',
-                  fontSize: '16px',
-                  fontWeight: 400,
-                  lineHeight: '1.25em',
-                  color: '#797882',
-                  backgroundColor: 'transparent'
-                }}
-              />
-            </div>
-            
-            {/* Search Icon */}
-            <div
-              style={{
-                position: 'absolute',
-                left: '277px',
-                top: '7px',
-                width: '24px',
-                height: '24px'
-              }}
-            >
-              <div
-                style={{
-                  position: 'absolute',
-                  left: '1.33px',
-                  top: '1.83px',
-                  width: '23.33px',
-                  height: '23.33px'
-                }}
-              >
-                <div
-                  style={{
-                    width: '19.8px',
-                    height: '19.8px',
-                    border: '2px solid #242526',
-                    borderRadius: '50%',
-                    position: 'absolute'
-                  }}
-                />
-                <div
-                  style={{
-                    width: '6.36px',
-                    height: '6.36px',
-                    backgroundColor: '#242526',
-                    borderRadius: '0px 0px 45% 0px',
-                    position: 'absolute',
-                    right: '0px',
-                    bottom: '0px',
-                    transform: 'rotate(45deg)',
-                    transformOrigin: 'bottom right'
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+          {/* Search removed as requested */}
 
           {/* Navigation Links */}
           {/* Categories -> Editorial Policy */}
@@ -523,31 +609,33 @@ export function BlogArticleTemplate({ article, availableTranslations = [] }: Blo
             </h1>
 
             {/* Featured Image - full container width */}
-            <div 
-              className="relative mb-8"
-              style={{ width: '851px', height: '395px' }}
-            >
-              <img
-                src={article.featured_image?.file_url || article.og_image?.file_url}
-                alt={article.title}
-                className="w-full h-full object-cover"
-                style={{ borderRadius: '15px' }}
-              />
+            {(article.featured_image?.file_url || article.og_image?.file_url) && (
               <div 
-                className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"
-                style={{ borderRadius: '15px' }}
-              ></div>
-              
-              {/* Share Button */}
-              <div className="absolute" style={{ top: '25px', right: '25px' }}>
+                className="relative mb-8"
+                style={{ width: '851px', height: '395px' }}
+              >
+                <img
+                  src={article.featured_image?.file_url || article.og_image?.file_url}
+                  alt={article.title}
+                  className="w-full h-full object-cover"
+                  style={{ borderRadius: '15px' }}
+                />
                 <div 
-                  className="bg-white rounded-full flex items-center justify-center shadow-lg cursor-pointer"
-                  style={{ width: '48px', height: '48px' }}
-                >
-                  <Share2 className="w-6 h-6 text-black" />
+                  className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"
+                  style={{ borderRadius: '15px' }}
+                ></div>
+                
+                {/* Share Button */}
+                <div className="absolute" style={{ top: '25px', right: '25px' }}>
+                  <div 
+                    className="bg-white rounded-full flex items-center justify-center shadow-lg cursor-pointer"
+                    style={{ width: '48px', height: '48px' }}
+                  >
+                    <Share2 className="w-6 h-6 text-black" />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Author Info Bar */}
             <div 
@@ -658,6 +746,52 @@ export function BlogArticleTemplate({ article, availableTranslations = [] }: Blo
               }}
               dangerouslySetInnerHTML={{ __html: article.content }}
             />
+            
+            {/* Enhanced Content Sections */}
+            
+            {/* Hotels Section */}
+            {article.hotels && article.hotels.length > 0 && (
+              <section className="mt-12 mb-8">
+                <h2 
+                  className="text-[#242526] mb-6"
+                  style={{
+                    fontFamily: 'Poppins, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '28px',
+                    lineHeight: '1.2em',
+                    letterSpacing: '-0.02em'
+                  }}
+                >
+                  Where to Stay
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {article.hotels.slice(0, 4).map((hotel, index) => (
+                    <HotelCard key={index} hotel={hotel} />
+                  ))}
+                </div>
+              </section>
+            )}
+            
+            {/* Budget Info Section */}
+            {article.budget_info && (
+              <section className="mt-12 mb-8">
+                <BudgetSection budgetInfo={article.budget_info} />
+              </section>
+            )}
+            
+            {/* Itinerary Section */}
+            {article.itinerary && article.itinerary.length > 0 && (
+              <section className="mt-12 mb-8">
+                <ItinerarySection itinerary={article.itinerary} />
+              </section>
+            )}
+            
+            {/* Travel Tips Section */}
+            {article.travel_tips && article.travel_tips.length > 0 && (
+              <section className="mt-12 mb-8">
+                <TravelTipsSection tips={article.travel_tips} />
+              </section>
+            )}
             
           </div>
           

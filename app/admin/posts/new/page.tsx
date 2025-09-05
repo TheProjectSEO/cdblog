@@ -34,6 +34,7 @@ import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
+import { CategoryManager } from '@/components/admin/CategoryManager'
 
 // Dynamically import rich text editor to avoid SSR issues
 const RichTextEditor = dynamic(() => import('@/components/rich-text-editor'), {
@@ -57,7 +58,7 @@ interface PostData {
   author_id: string
   seo_title: string
   seo_description: string
-  categories: string[]
+  categories: string[] // Category IDs
   tags: string[]
   publish_date: string
   template_enabled: boolean
@@ -85,7 +86,6 @@ export default function NewPostPage() {
     template_type: ''
   })
   
-  const [newCategory, setNewCategory] = useState('')
   const [newTag, setNewTag] = useState('')
   const [showPreview, setShowPreview] = useState(false)
   const [autoSave, setAutoSave] = useState(true)
@@ -112,8 +112,9 @@ export default function NewPostPage() {
   const fetchAuthors = async () => {
     try {
       const { data, error } = await supabase
-        .from('authors')
+        .from('modern_authors')
         .select('id, display_name, email')
+        .eq('is_active', true)
         .order('display_name')
 
       if (error) throw error
@@ -144,32 +145,106 @@ export default function NewPostPage() {
       setSaving(true)
       
       const now = new Date().toISOString()
+      
+      // Prepare post data (excluding categories and tags which are handled separately)
       const dataToSave = {
         title: postData.title.trim(),
         slug: postData.slug.trim(),
-        excerpt: postData.excerpt.trim(),
-        content: postData.content,
+        excerpt: postData.excerpt.trim() || '',
+        content: postData.content || '',
         status,
-        featured_image_url: postData.featured_image_url || null,
+        og_image: postData.featured_image_url || null, // Use og_image instead of featured_image_url
         author_id: postData.author_id,
+        meta_title: postData.seo_title || postData.title, // Use meta_title instead of seo_title
+        meta_description: postData.seo_description.trim() || '',
         seo_title: postData.seo_title || postData.title,
-        seo_description: postData.seo_description.trim(),
-        categories: postData.categories,
-        tags: postData.tags,
-        template_enabled: postData.template_enabled,
+        seo_description: postData.seo_description.trim() || '',
+        template_enabled: postData.template_enabled || false,
         template_type: postData.template_type || null,
         created_at: now,
         updated_at: now,
-        published_at: status === 'published' ? (postData.publish_date || now) : null
+        published_at: status === 'published' ? (postData.publish_date || now) : null,
+        // Additional fields that exist in the schema
+        is_featured: false,
+        allow_comments: true,
+        robots_index: true,
+        robots_follow: true,
+        robots_nosnippet: false,
+        view_count: 0
       }
 
+      // Insert the post first
       const { data, error } = await supabase
         .from('modern_posts')
         .insert(dataToSave)
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Post insert error:', error)
+        throw error
+      }
+
+      // Now handle categories if any are selected
+      if (postData.categories && postData.categories.length > 0) {
+        const categoryRelations = postData.categories.map(categoryId => ({
+          post_id: data.id,
+          category_id: categoryId
+        }))
+
+        const { error: categoriesError } = await supabase
+          .from('modern_post_categories')
+          .insert(categoryRelations)
+
+        if (categoriesError) {
+          console.error('Categories insert error:', categoriesError)
+          // Don't fail the entire operation for category errors, just warn
+          toast.error('Post saved but categories could not be assigned')
+        }
+      }
+
+      // Handle tags if any are provided
+      if (postData.tags && postData.tags.length > 0) {
+        try {
+          // First, ensure tags exist in modern_tags table
+          for (const tagName of postData.tags) {
+            const { error: tagUpsertError } = await supabase
+              .from('modern_tags')
+              .upsert({ name: tagName.trim() }, { onConflict: 'name' })
+
+            if (tagUpsertError) {
+              console.error('Tag upsert error:', tagUpsertError)
+            }
+          }
+
+          // Get tag IDs
+          const { data: tagData, error: tagSelectError } = await supabase
+            .from('modern_tags')
+            .select('id, name')
+            .in('name', postData.tags)
+
+          if (tagSelectError) {
+            console.error('Tag select error:', tagSelectError)
+          } else if (tagData) {
+            // Create post-tag relationships
+            const tagRelations = tagData.map(tag => ({
+              post_id: data.id,
+              tag_id: tag.id
+            }))
+
+            const { error: tagsError } = await supabase
+              .from('modern_post_tags')
+              .insert(tagRelations)
+
+            if (tagsError) {
+              console.error('Tags insert error:', tagsError)
+              toast.error('Post saved but tags could not be assigned')
+            }
+          }
+        } catch (tagError) {
+          console.error('Tag handling error:', tagError)
+        }
+      }
 
       setLastSaved(new Date())
       toast.success(`Post ${status === 'published' ? 'published' : 'saved as draft'} successfully`)
@@ -178,26 +253,16 @@ export default function NewPostPage() {
       router.push(`/admin/posts/${data.id}/edit`)
     } catch (error) {
       console.error('Error saving post:', error)
-      toast.error('Failed to save post')
+      toast.error(`Failed to save post: ${error?.message || 'Unknown error'}`)
     } finally {
       setSaving(false)
     }
   }
 
-  const handleAddCategory = () => {
-    if (newCategory.trim() && !postData.categories.includes(newCategory.trim())) {
-      setPostData(prev => ({
-        ...prev,
-        categories: [...prev.categories, newCategory.trim()]
-      }))
-      setNewCategory('')
-    }
-  }
-
-  const handleRemoveCategory = (category: string) => {
+  const handleCategoryChange = (categoryIds: string[]) => {
     setPostData(prev => ({
       ...prev,
-      categories: prev.categories.filter(c => c !== category)
+      categories: categoryIds
     }))
   }
 
@@ -539,30 +604,12 @@ export default function NewPostPage() {
                   Categories
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    placeholder="Add new category"
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
-                  />
-                  <Button size="sm" onClick={handleAddCategory}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {postData.categories.map((category) => (
-                    <Badge key={category} variant="secondary" className="flex items-center gap-1">
-                      {category}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
-                        onClick={() => handleRemoveCategory(category)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
+              <CardContent>
+                <CategoryManager
+                  selectedCategoryIds={postData.categories}
+                  onCategoryChange={handleCategoryChange}
+                  showTitle={false}
+                />
               </CardContent>
             </Card>
 

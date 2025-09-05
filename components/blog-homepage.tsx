@@ -608,29 +608,31 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                  { name: "DUBAI", subtitle: "140 Articles", image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
-                  { name: "LONDON", subtitle: "43 Articles", image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
-                  { name: "ROME", subtitle: "40 Articles", image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
-                  { name: "BERLIN", subtitle: "35 Articles", image: "https://images.unsplash.com/photo-1560969184-10fe8719e047?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
-                  { name: "BARCELONA", subtitle: "29 Articles", image: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
-                  { name: "GREECE", subtitle: "29 Articles", image: "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
-                  { name: "PARIS", subtitle: "24 Articles", image: "https://images.unsplash.com/photo-1431274172761-fca41d930114?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
-                  { name: "JAPAN", subtitle: "21 Articles", image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
-                  { name: "ITALY", subtitle: "11 Articles", image: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" }
+                  { name: "DUBLIN", subtitle: "912 Stays", image: "https://images.unsplash.com/photo-1549918864-48ac978761a4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/dublin-ct1372595407" },
+                  { name: "LONDON", subtitle: "8819 Stays", image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/london-ct1826645935" },
+                  { name: "AMSTERDAM", subtitle: "1128 Stays", image: "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/amsterdam-ct1528355309" },
+                  { name: "BARCELONA", subtitle: "2804 Stays", image: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/barcelona-ct1724594040" },
+                  { name: "BANGKOK", subtitle: "4035 Stays", image: "https://images.unsplash.com/photo-1508009603885-50cf7c579365?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/bangkok-ct1764068610" },
+                  { name: "BALI", subtitle: "4283 Stays", image: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/bali-ct1360015008" },
+                  { name: "LISBON", subtitle: "2812 Stays", image: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/lisbon-ct1620619017" },
+                  { name: "MADRID", subtitle: "2751 Stays", image: "https://images.unsplash.com/photo-1543785734-4b6e564642f8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/madrid-ct1724616994" },
+                  { name: "NEW YORK", subtitle: "1626 Stays", image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", url: "/l/new-york-ct1840034016" }
                 ].map((destination) => (
-                  <div key={destination.name} className="relative aspect-[4/3] rounded-2xl overflow-hidden group cursor-pointer">
-                    <Image
-                      src={destination.image}
-                      alt={destination.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-4 left-4">
-                      <h3 className="text-white font-bold text-xl">{destination.name}</h3>
-                      <p className="text-white/80 text-sm">{destination.subtitle}</p>
+                  <Link key={destination.name} href={destination.url}>
+                    <div className="relative aspect-[4/3] rounded-2xl overflow-hidden group cursor-pointer">
+                      <Image
+                        src={destination.image}
+                        alt={destination.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute bottom-4 left-4">
+                        <h3 className="text-white font-bold text-xl">{destination.name}</h3>
+                        <p className="text-white/80 text-sm">{destination.subtitle}</p>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </section>
@@ -680,17 +682,17 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
               <div className="space-y-3">
                 {/* Row 1 */}
                 <div className="flex flex-wrap gap-2">
-                  <Link href="/destinations/dubai">
+                  <Link href="/l/las-vegas-ct1840020364">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
-                      Dubai
+                      Las Vegas
                     </button>
                   </Link>
-                  <Link href="/destinations/madrid">
+                  <Link href="/l/madrid-ct1724616994">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Madrid
                     </button>
                   </Link>
-                  <Link href="/destinations/barcelona">
+                  <Link href="/l/barcelona-ct1724594040">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Barcelona
                     </button>
@@ -699,17 +701,17 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
                 
                 {/* Row 2 */}
                 <div className="flex flex-wrap gap-2">
-                  <Link href="/destinations/alaska">
+                  <Link href="/l/bangkok-ct1764068610">
                     <button className="px-5 py-2 rounded-full bg-pink-500 text-white font-semibold text-sm hover:bg-pink-600 transition-colors">
-                      Alaska
+                      Bangkok
                     </button>
                   </Link>
-                  <Link href="/destinations/los-angeles">
+                  <Link href="/l/los-angeles-ct1840020491">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Los Angeles
                     </button>
                   </Link>
-                  <Link href="/destinations/new-york">
+                  <Link href="/l/new-york-ct1840034016">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       New York
                     </button>
@@ -718,17 +720,17 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
                 
                 {/* Row 3 */}
                 <div className="flex flex-wrap gap-2">
-                  <Link href="/destinations/phoenix">
+                  <Link href="/l/london-ct1826645935">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
-                      Phoenix
+                      London
                     </button>
                   </Link>
-                  <Link href="/destinations/atlanta">
+                  <Link href="/l/miami-ct1840015149">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
-                      Atlanta
+                      Miami
                     </button>
                   </Link>
-                  <Link href="/destinations/bali">
+                  <Link href="/l/bali-ct1360015008">
                     <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Bali
                     </button>
@@ -766,14 +768,18 @@ export function BlogHomepage({ recentPosts, featuredPosts, totalPosts, categorie
             <div>
               <h3 className="text-xl font-semibold text-gray-900 mb-6">Categories</h3>
               <div className="space-y-3">
-                {categories.slice(0, 6).map((category, index) => (
-                  <div key={category} className="flex items-center justify-between text-sm">
-                    <Link href={`/category/${category.toLowerCase()}`} className="text-gray-700 hover:text-blue-600">
-                      {category}
-                    </Link>
-                    <span className="text-gray-400">{Math.floor(Math.random() * 50) + 10}</span>
-                  </div>
-                ))}
+                {categories.slice(0, 6).map((category, index) => {
+                  // Generate a consistent "post count" based on category name
+                  const deterministicCount = category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 50 + 10
+                  return (
+                    <div key={category} className="flex items-center justify-between text-sm">
+                      <Link href={`/category/${category.toLowerCase()}`} className="text-gray-700 hover:text-blue-600">
+                        {category}
+                      </Link>
+                      <span className="text-gray-400">{deterministicCount}</span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 

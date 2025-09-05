@@ -265,44 +265,31 @@ export default function RedirectsManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="bg-white border-b border-blue-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin" className="text-blue-600 hover:text-blue-800">
-                <Button variant="outline" size="sm">
-                  ← Back to Admin
-                </Button>
-              </Link>
-              <div className="flex items-center gap-2">
-                <ExternalLink className="w-6 h-6 text-blue-600" />
-                <h1 className="text-2xl font-bold text-blue-900">Advanced URL Redirects</h1>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowBulkImport(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Bulk Import
-              </Button>
-              <Button variant="outline" onClick={exportRedirects}>
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-              <Button onClick={() => setShowAddForm(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Redirect
-              </Button>
-            </div>
-          </div>
-          <p className="text-blue-600 mt-2">Manage URL redirects and slug changes</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">URL Redirects</h1>
+          <p className="text-muted-foreground">Manage URL redirects and slug changes</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowBulkImport(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Bulk Import
+          </Button>
+          <Button variant="outline" onClick={exportRedirects}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button onClick={() => setShowAddForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Redirect
+          </Button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Search and Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {/* Search and Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
@@ -351,9 +338,9 @@ export default function RedirectsManagement() {
           </Card>
         </div>
 
-        {/* Bulk Import Dialog */}
-        {showBulkImport && (
-          <Card className="mb-6">
+      {/* Bulk Import Dialog */}
+      {showBulkImport && (
+        <Card>
             <CardHeader>
               <CardTitle>Bulk Import Redirects</CardTitle>
             </CardHeader>
@@ -384,9 +371,9 @@ outdated-page,updated-page,true`}
           </Card>
         )}
 
-        {/* Add New Redirect Form */}
-        {showAddForm && (
-          <Card className="mb-6">
+      {/* Add New Redirect Form */}
+      {showAddForm && (
+        <Card>
             <CardHeader>
               <CardTitle>Create New Redirect</CardTitle>
             </CardHeader>
@@ -460,8 +447,8 @@ outdated-page,updated-page,true`}
           </Card>
         )}
 
-        {/* Redirects List */}
-        <Card>
+      {/* Redirects List */}
+      <Card>
           <CardHeader>
             <CardTitle>
               Existing Redirects ({filteredRedirects.length}
@@ -552,9 +539,8 @@ outdated-page,updated-page,true`}
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

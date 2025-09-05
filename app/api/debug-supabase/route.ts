@@ -1,63 +1,84 @@
 import { NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    console.log('Testing Supabase connection and authors table...')
+    const { searchParams } = new URL(request.url)
+    const debugSlug = searchParams.get('slug') || 'new-travel-guide-1756996117860'
+    
+    console.log(`Debugging sections for post slug: ${debugSlug}`)
     console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
     console.log('Supabase Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
     console.log('Admin Key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
     
-    // Test basic query with admin client to bypass RLS
+    // Use admin client to bypass RLS
     const client = supabaseAdmin || supabase
     
-    // Check authors table
-    const { data: authorsData, error: authorsError } = await client
-      .from('authors')
-      .select('id, name, title')
-      .order('name')
+    // First, get the post by slug
+    const { data: postData, error: postError } = await client
+      .from('modern_posts')
+      .select('*')
+      .eq('slug', debugSlug)
+      .single()
     
-    if (authorsError) {
-      console.error('Authors query error:', authorsError)
+    if (postError) {
+      console.error('Post query error:', postError)
       return NextResponse.json({
-        error: 'Authors table query failed',
-        details: authorsError
+        error: 'Post not found',
+        slug: debugSlug,
+        details: postError
       })
     }
     
-    // Check ALL modern posts to see author_id pattern
-    const { data: allPosts, error: postError } = await client
-      .from('modern_posts')
-      .select('id, title, author_id')
+    // Get sections for this post
+    const { data: sectionsData, error: sectionsError } = await client
+      .from('modern_post_sections')
+      .select('*')
+      .eq('post_id', postData.id)
+      .order('position', { ascending: true })
     
-    // Check what author IDs are actually in use
-    const uniqueAuthorIds = [...new Set(allPosts?.map(p => p.author_id).filter(Boolean))]
+    // Get only active sections
+    const { data: activeSectionsData, error: activeSectionsError } = await client
+      .from('modern_post_sections')
+      .select('*')
+      .eq('post_id', postData.id)
+      .eq('is_active', true)
+      .order('position', { ascending: true })
     
-    // Count posts with invalid author IDs
-    const validAuthorIds = authorsData?.map(a => a.id) || []
-    const postsWithInvalidAuthorIds = allPosts?.filter(p => p.author_id && !validAuthorIds.includes(p.author_id)) || []
+    console.log('Post found:', {
+      id: postData.id,
+      title: postData.title,
+      slug: postData.slug,
+      status: postData.status
+    })
     
-    console.log('Authors data:', authorsData)
-    console.log('All posts count:', allPosts?.length)
-    console.log('Posts with invalid author IDs:', postsWithInvalidAuthorIds.length)
-    console.log('Unique author IDs in posts:', uniqueAuthorIds)
+    console.log('Sections data:', sectionsData?.length || 0, 'total sections')
+    console.log('Active sections:', activeSectionsData?.length || 0, 'active sections')
     
     return NextResponse.json({
       success: true,
-      authors: authorsData,
-      totalPosts: allPosts?.length || 0,
-      postsWithInvalidAuthorIds: postsWithInvalidAuthorIds.length,
-      invalidAuthorIdPosts: postsWithInvalidAuthorIds.slice(0, 3), // Show first 3 as examples
-      uniqueAuthorIds: uniqueAuthorIds,
-      authorsError: authorsError,
-      postError: postError,
-      authorIdMismatch: {
-        authorsTableFormat: authorsData?.map(a => a.id),
-        postsTableFormat: uniqueAuthorIds,
-        validAuthorIds: validAuthorIds,
-        issueSummary: `${postsWithInvalidAuthorIds.length} posts have invalid author IDs that don't exist in authors table`
+      slug: debugSlug,
+      post: {
+        id: postData.id,
+        title: postData.title,
+        slug: postData.slug,
+        status: postData.status,
+        published_at: postData.published_at,
+        created_at: postData.created_at,
+        updated_at: postData.updated_at
       },
-      message: 'Authors table debug complete - found ID format mismatch!'
+      sectionsAnalysis: {
+        totalSections: sectionsData?.length || 0,
+        activeSections: activeSectionsData?.length || 0,
+        inactiveSections: (sectionsData?.length || 0) - (activeSectionsData?.length || 0),
+        hasSections: (activeSectionsData?.length || 0) > 0
+      },
+      allSections: sectionsData || [],
+      activeSectionsOnly: activeSectionsData || [],
+      sectionsError: sectionsError,
+      activeSectionsError: activeSectionsError,
+      postError: postError,
+      message: `Debug complete for slug: ${debugSlug}`
     })
     
   } catch (error) {

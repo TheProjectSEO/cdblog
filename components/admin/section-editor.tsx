@@ -496,14 +496,27 @@ export function SectionEditor({ section, isOpen, onClose, onSave }: SectionEdito
       const loadAuthors = async () => {
         try {
           const { data, error } = await supabase
-            .from('authors')
+            .from('modern_authors')
             .select('*')
-            .order('name')
+            .eq('is_active', true)
+            .order('display_name')
           
           if (error || !data || data.length === 0) {
             setAuthors(defaultAuthors)
           } else {
-            setAuthors(data)
+            // Map modern_authors fields to expected format
+            const mappedAuthors = data.map(author => ({
+              id: author.id,
+              name: author.display_name,
+              title: author.role || 'Travel Expert',
+              bio: author.bio || '',
+              avatar_url: author.avatar_url || '/placeholder.svg',
+              countries_explored: '50+ countries explored',
+              expert_since: 'Expert since 2024',
+              followers: '1M+ fellow travelers',
+              badges: ['Adventure seeker', 'Food lover', 'Culture enthusiast']
+            }))
+            setAuthors(mappedAuthors)
           }
         } catch (error) {
           setAuthors(defaultAuthors)

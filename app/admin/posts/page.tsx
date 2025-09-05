@@ -28,12 +28,15 @@ import {
   Download,
   Upload,
   RefreshCw,
+  Languages,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 
 interface ModernPost {
   id: string
@@ -82,6 +85,20 @@ export default function PostsPage() {
     status: '' as 'draft' | 'published' | 'archived'
   })
   const [isSaving, setIsSaving] = useState(false)
+  
+  // Translation state
+  const [showTranslateDialog, setShowTranslateDialog] = useState(false)
+  const [postToTranslate, setPostToTranslate] = useState<ModernPost | null>(null)
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([])
+  const [isTranslating, setIsTranslating] = useState(false)
+  
+  // Available languages for translation
+  const availableLanguages = [
+    { code: 'fr', name: 'French', flag: '🇫🇷' },
+    { code: 'it', name: 'Italian', flag: '🇮🇹' },
+    { code: 'de', name: 'German', flag: '🇩🇪' },
+    { code: 'es', name: 'Spanish', flag: '🇪🇸' }
+  ]
   
   // Stats for filter counts
   const [postCounts, setPostCounts] = useState({
@@ -342,6 +359,61 @@ export default function PostsPage() {
     }
   }
 
+  const handleTranslatePost = async () => {
+    if (!postToTranslate || selectedLanguages.length === 0 || isTranslating) return
+
+    setIsTranslating(true)
+    
+    try {
+      const response = await fetch('/api/admin/translate-final', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          postId: postToTranslate.id,
+          languages: selectedLanguages,
+          regenerate: true // Always regenerate to ensure fresh translations
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to translate post')
+      }
+
+      // Count successful translations
+      const successfulTranslations = result.results?.filter((r: any) => r.success)?.length || 0
+      const failedTranslations = result.results?.filter((r: any) => !r.success)?.length || 0
+      
+      if (successfulTranslations > 0) {
+        toast.success(`Post translated successfully into ${successfulTranslations} language(s)!`)
+      }
+      if (failedTranslations > 0) {
+        toast.error(`${failedTranslations} translation(s) failed. Check the logs for details.`)
+      }
+      
+      setShowTranslateDialog(false)
+      setPostToTranslate(null)
+      setSelectedLanguages([])
+      
+    } catch (error) {
+      console.error('Error translating post:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to translate post')
+    } finally {
+      setIsTranslating(false)
+    }
+  }
+
+  const toggleLanguageSelection = (languageCode: string) => {
+    setSelectedLanguages(prev => 
+      prev.includes(languageCode)
+        ? prev.filter(code => code !== languageCode)
+        : [...prev, languageCode]
+    )
+  }
+
   const getCurrentPagePosts = () => {
     const startIndex = (currentPage - 1) * postsPerPage
     const endIndex = startIndex + postsPerPage
@@ -352,8 +424,7 @@ export default function PostsPage() {
   const currentPagePosts = getCurrentPagePosts()
 
   return (
-    <AuthWrapper>
-      <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -515,6 +586,17 @@ export default function PostsPage() {
                               className="text-blue-600 hover:underline"
                             >
                               Quick Edit
+                            </button>
+                            <span className="text-muted-foreground">|</span>
+                            <button 
+                              onClick={() => {
+                                setPostToTranslate(post)
+                                setShowTranslateDialog(true)
+                                setSelectedLanguages([])
+                              }}
+                              className="text-purple-600 hover:underline"
+                            >
+                              Translate
                             </button>
                             <span className="text-muted-foreground">|</span>
                             <button 
@@ -799,7 +881,104 @@ export default function PostsPage() {
             </DialogContent>
           </Dialog>
         )}
-      </div>
-    </AuthWrapper>
+
+        {/* Translation Dialog */}
+        <Dialog open={showTranslateDialog} onOpenChange={setShowTranslateDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Languages className="h-5 w-5" />
+                Translate Post
+              </DialogTitle>
+              <DialogDescription>
+                Select the languages you want to translate "{postToTranslate?.title}" into.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-3">
+                {availableLanguages.map((language) => (
+                  <div key={language.code} className="flex items-center space-x-3">
+                    <Checkbox
+                      id={language.code}
+                      checked={selectedLanguages.includes(language.code)}
+                      onCheckedChange={() => toggleLanguageSelection(language.code)}
+                      disabled={isTranslating}
+                    />
+                    <label 
+                      htmlFor={language.code}
+                      className="flex items-center gap-2 text-sm font-medium cursor-pointer"
+                    >
+                      <span className="text-lg">{language.flag}</span>
+                      {language.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              
+              {selectedLanguages.length > 0 && (
+                <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
+                  <div className="text-sm text-blue-800">
+                    <strong>Selected languages:</strong> {selectedLanguages.length}
+                  </div>
+                  <div className="text-xs text-blue-600 mt-1">
+                    This will create new posts with URLs like:<br />
+                    {selectedLanguages.map(lang => {
+                      // Extract country from existing slug structure
+                      const slug = postToTranslate?.slug || ''
+                      const slugParts = slug.split('/')
+                      let urlStructure = ''
+                      
+                      if (slugParts.length >= 2) {
+                        // Has country: /thailand/post-name -> /thailand/fr/post-name
+                        const country = slugParts[0]
+                        const postSlug = slugParts.slice(1).join('/')
+                        urlStructure = `/blog/${country}/${lang}/${postSlug}`
+                      } else {
+                        // No country: /post-name -> /post-name/${lang} (for posts without country)
+                        urlStructure = `/blog/${slug}/${lang}`
+                      }
+                      
+                      return (
+                        <code key={lang} className="block">{urlStructure}</code>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowTranslateDialog(false)
+                    setPostToTranslate(null)
+                    setSelectedLanguages([])
+                  }}
+                  disabled={isTranslating}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleTranslatePost}
+                  disabled={isTranslating || selectedLanguages.length === 0}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {isTranslating ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Translating...
+                    </>
+                  ) : (
+                    <>
+                      <Languages className="h-4 w-4 mr-2" />
+                      Translate ({selectedLanguages.length})
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+    </div>
   )
 }

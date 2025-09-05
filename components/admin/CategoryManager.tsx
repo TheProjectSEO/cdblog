@@ -70,24 +70,17 @@ export function CategoryManager({
       setLoading(true)
       setError(null)
 
-      // Fetch both legacy and modern categories
-      const [modernResult, legacyResult] = await Promise.all([
-        supabase
-          .from('modern_categories')
-          .select('*')
-          .eq('is_active', true)
-          .order('name', { ascending: true }),
-        supabase
-          .from('blog_categories')
-          .select('*')
-          .order('name', { ascending: true })
-      ])
+      // Fetch categories from the existing modern_categories table
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('modern_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
 
-      if (modernResult.error) throw modernResult.error
-      if (legacyResult.error) throw legacyResult.error
+      if (categoriesError) throw categoriesError
 
-      // Combine and format categories
-      const modernCategories = (modernResult.data || []).map(cat => ({
+      // Format categories for the component
+      const formattedCategories = (categoriesData || []).map(cat => ({
         id: cat.id,
         name: cat.name,
         slug: cat.slug,
@@ -98,19 +91,7 @@ export function CategoryManager({
         updated_at: cat.updated_at,
       }))
 
-      const legacyCategories = (legacyResult.data || []).map(cat => ({
-        id: cat.id.toString(),
-        name: cat.name,
-        slug: cat.slug,
-        description: cat.description || '',
-        color: '#94A3B8', // Gray for legacy categories
-        is_active: true,
-        created_at: cat.created_at,
-        updated_at: cat.updated_at,
-      }))
-
-      const allCategories = [...modernCategories, ...legacyCategories]
-      setCategories(allCategories)
+      setCategories(formattedCategories)
     } catch (error) {
       console.error('Error fetching categories:', error)
       setError('Failed to load categories')
